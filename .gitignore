@@ -1,0 +1,41 @@
+# --- Secrets & local config (NEVER commit) ---
+.env
+.env.*
+*.key
+*.pem
+*.pfx
+credentials.json
+secrets.yml
+*_secret*
+
+# --- Lab artifacts & captures (often large / sensitive) ---
+*.pcap
+*.pcapng
+*.evtx
+*.raw
+*.mem
+captures/
+samples/live/
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
+
+# --- Claude / tooling ---
+.claude/
