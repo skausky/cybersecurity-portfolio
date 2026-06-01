@@ -110,7 +110,6 @@ flowchart LR
 | 🎓 **B.S. Cybersecurity** | *(2026 graduate)* — see [docs/education.md](./docs/education.md) |
 | 📜 **Certifications** | CompTIA Security+ · *(in progress: Blue Team Level 1 / BTL1)* — [docs/certifications.md](./docs/certifications.md) |
 
-> 📌 *Certifications and education details are placeholders — update [docs/certifications.md](./docs/certifications.md) and [docs/education.md](./docs/education.md) with your specifics.*
 
 ---
 
