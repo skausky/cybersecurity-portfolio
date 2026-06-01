@@ -9,7 +9,7 @@
 [![Focus](https://img.shields.io/badge/Focus-Blue%20Team%20%2F%20SOC-1f6feb?style=flat-square)](#-areas-of-focus)
 [![MITRE ATT&CK](https://img.shields.io/badge/Framework-MITRE%20ATT%26CK-c5283d?style=flat-square)](https://attack.mitre.org/)
 [![Home Lab](https://img.shields.io/badge/Home%20Lab-Active-2ea043?style=flat-square)](#-home-soc-lab)
-[![Status](https://img.shields.io/badge/Open%20to-Entry%20Level%20SOC%20Roles-8957e5?style=flat-square)](#-lets-connect)
+[![Status](https://img.shields.io/badge/Open%20to-Entry%20Level%20SOC%20Roles-8957e5?style=flat-square)](#-about-me)
 
 </div>
 
