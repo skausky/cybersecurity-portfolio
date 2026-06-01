@@ -1,0 +1,31 @@
+// Hunt: Living-off-the-Land Binary (LOLBin) execution
+// Platform: Microsoft Defender / Sentinel (KQL)
+// ATT&CK: T1218 - System Binary Proxy Execution
+// Author: Sean Spakausky
+
+DeviceProcessEvents
+| where Timestamp > ago(7d)
+| where FileName in~ (
+    "certutil.exe", "mshta.exe", "regsvr32.exe",
+    "rundll32.exe", "bitsadmin.exe", "msbuild.exe"
+  )
+// Suspicious argument patterns: network fetches, script execution, cache abuse
+| where ProcessCommandLine has_any (
+    "http", "https", "ftp",
+    "-urlcache", "-decode", "-encode",
+    "javascript:", "vbscript:", "scrobj.dll"
+  )
+// Surface abnormal parents (Office, browsers, script hosts spawning LOLBins is high-signal)
+| extend SuspiciousParent = InitiatingProcessFileName in~ (
+    "winword.exe", "excel.exe", "powerpnt.exe",
+    "outlook.exe", "wscript.exe", "cscript.exe", "mshta.exe"
+  )
+| project
+    Timestamp,
+    DeviceName,
+    AccountName,
+    InitiatingProcessFileName,
+    FileName,
+    ProcessCommandLine,
+    SuspiciousParent
+| sort by SuspiciousParent desc, Timestamp desc

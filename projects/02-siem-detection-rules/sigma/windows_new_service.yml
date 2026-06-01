@@ -1,0 +1,29 @@
+title: New Windows Service Installed
+id: a1d4e8b2-3c5f-4d9a-8b2e-7f1c6a0d9e34
+status: experimental
+description: >
+  Detects installation of a new Windows service (Security Event ID 7045).
+  Adversaries frequently create services for persistence or privileged execution.
+author: Sean Spakausky
+date: 2026/06/01
+references:
+  - https://attack.mitre.org/techniques/T1543/003/
+tags:
+  - attack.persistence
+  - attack.privilege_escalation
+  - attack.t1543.003
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    EventID: 7045
+  filter_known_good:
+    ServiceName:
+      - 'Npcap Loopback Adapter'
+      - 'PSEXESVC'   # remove if PsExec is not authorized in your environment
+  condition: selection and not filter_known_good
+falsepositives:
+  - Legitimate software installation and updates.
+  - Administrative tooling (PsExec) where authorized — keep an allowlist.
+level: medium

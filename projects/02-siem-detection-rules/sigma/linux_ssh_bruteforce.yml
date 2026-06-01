@@ -1,0 +1,26 @@
+title: Linux SSH Brute Force Attempt
+id: c2e7f9a4-5b1d-4e3c-9a6f-2d8b4c0e1a57
+status: experimental
+description: >
+  Detects repeated failed SSH authentication attempts from a single source
+  address within a short window, indicative of a brute-force attack.
+author: Sean Spakausky
+date: 2026/06/01
+references:
+  - https://attack.mitre.org/techniques/T1110/
+tags:
+  - attack.credential_access
+  - attack.t1110
+logsource:
+  product: linux
+  service: sshd
+detection:
+  selection:
+    - 'Failed password for'
+    - 'Invalid user'
+  timeframe: 1m
+  condition: selection | count() by src_ip > 10
+falsepositives:
+  - Misconfigured automation or backup jobs using stale credentials.
+  - Vulnerability scanners during authorized assessments.
+level: medium

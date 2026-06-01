@@ -1,0 +1,26 @@
+``` Hunt: Failed logon analysis - password spray vs. brute force
+    Platform: Splunk (SPL)
+    ATT&CK: T1110 - Brute Force
+    Author: Sean Spakausky
+
+    Brute force  = many failures against ONE account from one source.
+    Password spray = few failures against MANY accounts from one source.
+    This search surfaces both by comparing distinct users vs. attempt counts. ```
+
+index=windows EventCode=4625
+| eval src=coalesce(Source_Network_Address, src_ip)
+| stats count AS failed_attempts
+        dc(Account_Name) AS distinct_users
+        values(Account_Name) AS targeted_accounts
+        min(_time) AS first_seen
+        max(_time) AS last_seen
+        by src
+| eval window_minutes = round((last_seen - first_seen)/60, 1)
+| eval pattern = case(
+        distinct_users >= 10 AND failed_attempts >= 10, "Likely password spray",
+        distinct_users <= 2 AND failed_attempts >= 15, "Likely brute force",
+        true(), "Review")
+| where failed_attempts >= 10
+| convert ctime(first_seen) ctime(last_seen)
+| sort - failed_attempts
+| table src, pattern, failed_attempts, distinct_users, targeted_accounts, window_minutes, first_seen, last_seen

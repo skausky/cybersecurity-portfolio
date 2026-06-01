@@ -1,0 +1,32 @@
+title: Suspicious PowerShell Download Cradle
+id: 6f3a1c9e-2b4d-4a8e-9c1f-0d7e5b3a1f20
+status: experimental
+description: >
+  Detects PowerShell download cradles commonly used to pull and execute
+  remote payloads directly in memory (fileless execution).
+author: Sean Spakausky
+date: 2026/06/01
+references:
+  - https://attack.mitre.org/techniques/T1059/001/
+tags:
+  - attack.execution
+  - attack.t1059.001
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+    Image|endswith: '\powershell.exe'
+  selection_cmd:
+    CommandLine|contains:
+      - 'DownloadString'
+      - 'DownloadFile'
+      - 'Net.WebClient'
+      - 'IEX'
+      - 'Invoke-Expression'
+      - 'Invoke-WebRequest'
+  condition: selection_img and selection_cmd
+falsepositives:
+  - Legitimate administrative scripts that fetch modules from internal repositories.
+    Tune with an allowlist on script path or code-signing certificate.
+level: high
