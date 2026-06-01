@@ -123,18 +123,6 @@ flowchart LR
 
 ---
 
-## 🤝 Let's Connect
-
-I'm actively looking for **entry-level SOC Analyst / Security Analyst** roles.
-
-- 📧 **Email:** *your.email@example.com*
-- 💼 **LinkedIn:** *linkedin.com/in/your-handle*
-- 📝 **Blog / Writeups:** *optional*
-
-> 📌 *Replace the contact placeholders above with your real details before sharing this with recruiters.*
-
----
-
 <div align="center">
 
 *Built and documented by Sean Spakausky · This portfolio is continuously updated as I complete new lab work.*
