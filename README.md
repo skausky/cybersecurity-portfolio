@@ -67,6 +67,7 @@ Each project is self-contained with its own README, objectives, and lessons lear
 | 03 | [🚨 Incident Response Playbooks](./projects/03-incident-response-playbooks/) | NIST 800-61 playbooks for phishing, ransomware & compromised accounts |
 | 04 | [🐺 Threat Hunting & Log Analysis](./projects/04-threat-hunting-log-analysis/) | Hypothesis-driven hunt writeups with KQL/SPL queries and findings |
 | 05 | [🔒 System Hardening](./projects/05-system-hardening/) | CIS-aligned Windows & Linux hardening scripts with audit output |
+| 📝 | [Writeups (TryHackMe & labs)](./writeups/) | Room/CTF writeups framed defensively — detect & defend, mapped to ATT&CK |
 
 ---
 
