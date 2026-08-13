@@ -6,7 +6,7 @@
 
 Blue Team · SOC · Detection Engineering · Incident Response
 
-📧 youremail@gmail.com · [LinkedIn](https://linkedin.com/in/yourhandle)
+📧
 
 ![Last Commit](https://img.shields.io/github/last-commit/skausky/skausky)
 ![Security+](https://img.shields.io/badge/CompTIA-Security%2B%20In%20Progress-red)
