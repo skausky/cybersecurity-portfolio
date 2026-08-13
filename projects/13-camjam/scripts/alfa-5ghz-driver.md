@@ -3,7 +3,7 @@
 ## What we see on this machine
 
 - USB: `0bda:0811` Realtek 8812AU/8821AU (Alfa-class dual-band AC adapter)
-- Interface: `<YOUR_ADAPTER>`
+- Interface: `<YOUR_ADAPTER>` (e.g. `wlx...` — shown by `ip link` or `iw dev`)
 - **Current driver:** `rtw88_8821au` (in-kernel rtw88)
 - **Bundled in repo:** `rtl8812au/` builds **`88XXau`** (aircrack-ng DKMS) — **not loaded by default**
 
@@ -16,7 +16,7 @@ The bundled `rtl8812au` tree includes patches for newer kernels (from [aircrack-
 ## Recommended fix: automated script
 
 ```bash
-cd /path/to/camjam
+cd /path/to/camjam   # or just run from the repo root
 sudo ./scripts/fix-alfa-5ghz.sh
 ```
 
