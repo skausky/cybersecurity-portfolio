@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>cam-scan</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#05080f;--surface:#090c13;--surface2:#0d1018;--surface3:#12161f;
+  --border:#1a2030;--border2:#2a3448;
+  --text:#c4d0e8;--muted:#445060;--dim:#2a3448;
+  --accent:#3b82f6;
+  --green:#10b981;--red:#ef4444;--amber:#f59e0b;
+  --crit:#ef4444;--high:#f59e0b;--med:#3b82f6;--info:#6b7280;
+}
+body{background:var(--bg);color:var(--text);font-family:'SF Mono','Cascadia Code','Fira Code',monospace;height:100vh;overflow:hidden;display:flex;flex-direction:column;font-size:12px}
+
+/* ── Header ── */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 14px;height:48px;display:flex;align-items:center;gap:10px;flex-shrink:0;z-index:20}
+.logo{color:var(--accent);font-size:15px;font-weight:700;letter-spacing:-.5px;display:flex;align-items:center;gap:7px;flex-shrink:0}
+.logo-pulse{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:glow 2s ease-in-out infinite}
+@keyframes glow{0%,100%{opacity:1}50%{opacity:.35;box-shadow:0 0 3px var(--green)}}
+.scan-badge{padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.6px;flex-shrink:0}
+.badge-idle{background:rgba(255,255,255,.03);color:var(--muted);border:1px solid var(--border)}
+.badge-run{background:rgba(59,130,246,.1);color:var(--accent);border:1px solid rgba(59,130,246,.3);animation:badgepulse 1.5s ease-in-out infinite}
+@keyframes badgepulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hdr-stats{margin-left:auto;display:flex;align-items:center;gap:16px;flex-shrink:0}
+.stat-item{display:flex;flex-direction:column;align-items:center;gap:1px}
+.stat-val{font-size:16px;font-weight:700;line-height:1;letter-spacing:-.5px}
+.stat-lbl{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px}
+.mv-chip{display:none;align-items:center;gap:4px;background:var(--surface2);border:1px solid var(--border);padding:2px 8px;border-radius:11px;font-size:10px;color:var(--muted);flex-shrink:0}
+.mv-dot{width:5px;height:5px;border-radius:50%;background:var(--muted)}
+.mv-on{background:var(--green);box-shadow:0 0 5px var(--green)}
+.sse-chip{display:flex;align-items:center;gap:4px;background:var(--surface2);border:1px solid var(--border);padding:2px 7px;border-radius:10px;font-size:9px;color:var(--muted);flex-shrink:0;cursor:default}
+.sse-dot{width:5px;height:5px;border-radius:50%;background:var(--muted);transition:background .3s,box-shadow .3s;flex-shrink:0}
+.sse-dot.up{background:var(--green);box-shadow:0 0 5px var(--green)}
+.sse-dot.err{background:var(--red)}
+
+/* ── Tabs ── */
+.tabs{background:var(--surface);border-bottom:1px solid var(--border);display:flex;padding:0 14px;flex-shrink:0}
+.tab{padding:10px 14px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;user-select:none;letter-spacing:.2px}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* ── Layout skeleton ── */
+.tabpanel{display:none;flex:1;overflow:hidden;min-height:0}
+.tabpanel.active{display:flex}
+.db-layout{display:flex;width:100%;height:100%;overflow:hidden}
+
+/* ── Sidebar ── */
+.side{width:212px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+.side::-webkit-scrollbar{width:2px}
+.side::-webkit-scrollbar-thumb{background:var(--border)}
+.side-sec{padding:11px 12px;border-bottom:1px solid var(--border)}
+.sec-hdr{font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:8px}
+.btn{width:100%;padding:7px 10px;border:none;border-radius:5px;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center;gap:5px}
+.btn+.btn{margin-top:4px}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;box-shadow:0 2px 10px rgba(59,130,246,.25)}
+.btn-primary:hover{box-shadow:0 3px 14px rgba(59,130,246,.4)}
+.btn-danger{background:rgba(239,68,68,.08);color:#fca5a5;border:1px solid rgba(239,68,68,.25)}
+.btn-danger:hover{background:rgba(239,68,68,.14)}
+.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--surface2);border-color:var(--border2)}
+.btn-off{background:var(--surface2);color:var(--dim);cursor:default;pointer-events:none;border:1px solid var(--border);opacity:.5}
+.fgrp{margin-bottom:7px}
+.flabel{display:block;font-size:9px;color:var(--muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px}
+.fctl{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:inherit;font-size:11px;padding:5px 7px}
+.fctl:focus{outline:none;border-color:var(--accent)}
+select.fctl option{background:var(--surface)}
+.toggle{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:11px;color:var(--text);padding:2px 0}
+.toggle input{accent-color:var(--accent);cursor:pointer;width:13px;height:13px}
+.enrich-bar{height:2px;background:var(--border);border-radius:2px;overflow:hidden;display:none;margin-top:5px}
+.enrich-fill{height:100%;background:var(--accent);width:0%;transition:width .3s;border-radius:2px}
+.enrich-lbl{font-size:9px;color:var(--muted);margin-top:4px;line-height:1.4}
+
+/* ── Feed wrapper + toolbar ── */
+.feed-wrap{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.feed-toolbar{display:flex;align-items:center;gap:5px;padding:5px 8px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.ft-search{flex:1;min-width:0;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:inherit;font-size:11px;padding:4px 8px}
+.ft-search:focus{outline:none;border-color:var(--accent)}
+.ft-search::placeholder{color:var(--muted)}
+.ft-sev{background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:inherit;font-size:10px;padding:4px 5px;flex-shrink:0}
+.ft-sev:focus{outline:none;border-color:var(--accent)}
+.feed-count{font-size:9px;color:var(--muted);white-space:nowrap;padding:2px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;flex-shrink:0}
+.feed-count.active{color:var(--amber);border-color:rgba(245,158,11,.3)}
+
+/* ── Card grid ── */
+.feed{
+  flex:1;overflow-y:auto;padding:8px;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(440px,1fr));
+  grid-auto-rows:minmax(165px,auto);
+  gap:7px;align-content:start;
+  background:var(--bg);
+  min-height:0;
+}
+.feed::-webkit-scrollbar{width:3px}
+.feed::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+.empty-state{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:8px;color:var(--muted)}
+.empty-icon{font-size:40px;opacity:.1;line-height:1}
+.empty-title{font-size:13px;color:var(--dim);font-weight:600}
+.empty-sub{font-size:10px;opacity:.5}
+
+/* ── Cards ── */
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:6px;
+  overflow:hidden;animation:cardIn .18s ease;transition:border-color .2s,box-shadow .2s;
+}
+.card:hover{border-color:var(--border2);box-shadow:0 3px 18px rgba(0,0,0,.5)}
+@keyframes cardIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.card.sev-critical{border-left:3px solid var(--crit)}
+.card.sev-high{border-left:3px solid var(--high)}
+.card.sev-medium{border-left:2px solid var(--med)}
+.card.sev-info{border-left:2px solid var(--info)}
+
+/* Card header */
+.card-header{
+  display:flex;align-items:center;gap:5px;
+  padding:5px 9px;background:var(--surface2);
+  border-bottom:1px solid var(--border);
+  min-height:30px;flex-shrink:0;
+}
+.card-ip{font-size:13px;font-weight:700;color:#dde5f8;letter-spacing:-.3px;flex-shrink:0}
+.badge-sev{padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:.4px;white-space:nowrap;flex-shrink:0}
+.badge-critical,.card.sev-critical .badge-sev{background:rgba(239,68,68,.1);color:var(--crit);border:1px solid rgba(239,68,68,.2)}
+.badge-high,.card.sev-high .badge-sev{background:rgba(245,158,11,.08);color:var(--high);border:1px solid rgba(245,158,11,.2)}
+.badge-medium,.card.sev-medium .badge-sev{background:rgba(59,130,246,.08);color:var(--med);border:1px solid rgba(59,130,246,.2)}
+.badge-fp{background:transparent;border:1px solid var(--border);color:var(--muted);padding:1px 5px;border-radius:3px;font-size:9px;flex-shrink:0}
+.unauth-badge{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:var(--crit);padding:1px 5px;border-radius:3px;font-size:9px;flex-shrink:0}
+.vuln-badge{background:rgba(239,68,68,.07);color:var(--crit);border:1px solid rgba(239,68,68,.15);padding:1px 5px;border-radius:3px;font-size:8px;font-weight:700;flex-shrink:0}
+.card-hdr-right{margin-left:auto;display:flex;align-items:center;gap:1px;flex-shrink:0}
+.card-time{font-size:9px;color:var(--muted);white-space:nowrap;padding:0 3px;cursor:default;user-select:none}
+.icon-btn{background:none;border:none;cursor:pointer;font-size:12px;padding:2px 3px;border-radius:3px;opacity:.25;transition:all .15s;line-height:1;flex-shrink:0}
+.icon-btn:hover{opacity:.9;background:rgba(255,255,255,.07)}
+.icon-btn.fav-on{opacity:1;filter:drop-shadow(0 0 4px #facc15)}
+.icon-btn.watch-on{opacity:1;filter:drop-shadow(0 0 5px var(--red))}
+.rec-badge{display:none;font-size:9px;font-weight:700;color:var(--red);background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);padding:1px 5px;border-radius:3px;animation:glow 1s ease-in-out infinite;letter-spacing:.3px;flex-shrink:0}
+
+/* Card body */
+.card-body{display:flex}
+
+/* Snapshot pane */
+.card-snap{
+  width:190px;flex-shrink:0;position:relative;
+  background:#020408;border-right:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+  /* explicit min-height so the card is never collapsed */
+  min-height:128px;
+}
+.card-snap img{
+  width:190px;height:128px;object-fit:cover;
+  display:block;cursor:zoom-in;transition:transform .2s;
+}
+.card-snap img:hover{transform:scale(1.04)}
+.no-snap{color:var(--muted);font-size:9px;text-align:center;padding:14px 6px;opacity:.35;line-height:1.5;user-select:none}
+.cap-overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.9));padding:14px 6px 5px;pointer-events:none}
+.cap-desc{font-size:9px;color:#b0c0dc;line-height:1.4}
+.cap-meta{display:flex;gap:3px;margin-top:3px;flex-wrap:wrap}
+.cap-tag{font-size:8px;color:var(--muted);background:rgba(0,0,0,.45);padding:1px 4px;border-radius:2px;border:1px solid rgba(255,255,255,.05)}
+.cap-tag.warn{color:var(--red);border-color:rgba(239,68,68,.3)}
+
+/* Info pane */
+.card-info{flex:1;padding:8px 10px;display:flex;flex-direction:column;gap:0;min-width:0;overflow:hidden}
+.info-rows{display:flex;flex-direction:column;gap:3px;flex:1}
+.info-row{display:flex;gap:5px;align-items:baseline;min-width:0}
+.info-lbl{font-size:9px;color:var(--muted);width:38px;flex-shrink:0;text-transform:uppercase;letter-spacing:.2px}
+.info-val{font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.info-url{
+  font-size:9px;color:var(--accent);word-break:break-all;cursor:pointer;
+  background:rgba(59,130,246,.04);padding:3px 6px;border-radius:3px;
+  border:1px solid rgba(59,130,246,.12);margin-top:4px;line-height:1.4;
+  transition:border-color .15s,background .15s;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.info-url:hover{border-color:rgba(59,130,246,.35);background:rgba(59,130,246,.08)}
+.info-url::before{content:"⬡ ";font-size:8px;opacity:.6}
+.vuln-tags{display:flex;flex-wrap:wrap;gap:2px;margin-top:4px}
+.vtag{font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;letter-spacing:.2px;white-space:nowrap}
+.vtag-crit{background:rgba(239,68,68,.1);color:var(--crit);border:1px solid rgba(239,68,68,.2)}
+.vtag-high{background:rgba(245,158,11,.07);color:var(--high);border:1px solid rgba(245,158,11,.2)}
+.vtag-med{background:rgba(59,130,246,.07);color:var(--med);border:1px solid rgba(59,130,246,.2)}
+
+/* Card actions */
+.card-actions{display:flex;gap:3px;padding:5px 8px;border-top:1px solid var(--border);background:rgba(0,0,0,.15);flex-wrap:wrap;flex-shrink:0}
+.abtn{padding:3px 7px;border:1px solid var(--border);border-radius:4px;background:transparent;color:var(--muted);font-family:inherit;font-size:9px;font-weight:600;cursor:pointer;transition:all .12s;letter-spacing:.2px;white-space:nowrap}
+.abtn:hover{background:var(--surface2);border-color:var(--border2);color:var(--text)}
+.abtn:active{transform:scale(.95)}
+.abtn.primary{background:rgba(59,130,246,.1);border-color:rgba(59,130,246,.25);color:var(--accent)}
+.abtn.primary:hover{background:rgba(59,130,246,.18)}
+.abtn.green{background:rgba(16,185,129,.07);border-color:rgba(16,185,129,.2);color:var(--green)}
+.abtn.green:hover{background:rgba(16,185,129,.14)}
+.abtn.red{background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.2);color:var(--red)}
+
+/* ── Log panel ── */
+.logp{
+  width:186px;background:var(--surface);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;
+  transition:width .2s ease;overflow:hidden;
+}
+.logp.collapsed{width:28px}
+.logh{
+  padding:6px 9px;border-bottom:1px solid var(--border);
+  font-size:8px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:1px;
+  display:flex;align-items:center;gap:5px;
+  cursor:pointer;user-select:none;flex-shrink:0;
+}
+.logh:hover{background:var(--surface2)}
+.logh-dot{width:4px;height:4px;border-radius:50%;background:var(--green);box-shadow:0 0 4px var(--green);animation:glow 2s infinite;flex-shrink:0}
+.logh-txt{flex:1;overflow:hidden}
+.logp.collapsed .logh-txt{display:none}
+.logh-arrow{font-size:9px;color:var(--dim);transition:transform .2s;flex-shrink:0;line-height:1}
+.logp.collapsed .logh-arrow{transform:rotate(180deg)}
+.logs{flex:1;overflow-y:auto;padding:4px;min-height:0}
+.logs::-webkit-scrollbar{width:2px}
+.logs::-webkit-scrollbar-thumb{background:var(--border)}
+.logp.collapsed .logs{display:none}
+.le{font-size:9px;color:var(--muted);padding:2px 5px;border-radius:2px;word-break:break-all;line-height:1.45;margin-bottom:1px}
+.le.warn{color:var(--amber)}.le.err{color:var(--red)}.le.hit{color:var(--green);font-weight:700}
+
+/* ── History ── */
+.hist-layout{display:flex;flex-direction:column;width:100%;height:100%}
+.hist-filters{display:flex;gap:5px;padding:7px 11px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.hist-filters .fctl{flex:1;min-width:80px}
+.hist-wrap{flex:1;overflow:auto;min-height:0}
+.htbl{width:100%;border-collapse:collapse;font-size:11px}
+.htbl th{background:var(--surface2);color:var(--muted);text-align:left;padding:7px 9px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5;font-size:9px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.htbl td{padding:6px 9px;border-bottom:1px solid var(--border);vertical-align:middle}
+.htbl tr:hover td{background:var(--surface2)}
+.tsnap{width:64px;height:48px;object-fit:cover;border-radius:3px;cursor:pointer;transition:transform .15s;display:block}
+.tsnap:hover{transform:scale(1.1)}
+.hpager{display:flex;align-items:center;gap:8px;padding:6px 11px;background:var(--surface);border-top:1px solid var(--border);font-size:10px;color:var(--muted);flex-shrink:0}
+.hpager button{padding:3px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:10px;cursor:pointer}
+.hpager button:hover{background:var(--border)}
+.hpager button:disabled{opacity:.3;cursor:default}
+.cap-cell{max-width:180px}
+.cap-cell .cdesc{font-size:10px;color:var(--text);line-height:1.4;margin-bottom:2px}
+.cap-cell .cmeta{font-size:9px;color:var(--muted);display:flex;flex-wrap:wrap;gap:3px}
+
+/* ── Settings ── */
+.settings-layout{flex:1;overflow-y:auto;padding:20px;background:var(--bg)}
+.settings-inner{max-width:540px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.scard{background:var(--surface);border:1px solid var(--border);border-radius:7px;overflow:hidden}
+.scard-title{padding:9px 14px;border-bottom:1px solid var(--border);font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;background:var(--surface2)}
+.srow{display:flex;align-items:center;padding:11px 14px;border-bottom:1px solid var(--border)}
+.srow:last-child{border-bottom:none}
+.srow-info{flex:1}
+.srow-key{font-size:12px;font-weight:600;color:var(--text)}
+.srow-desc{font-size:10px;color:var(--muted);margin-top:2px}
+.srow-ctrl{margin-left:14px;flex-shrink:0}
+.sinput{background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:inherit;font-size:11px;padding:5px 9px;width:180px}
+.sinput:focus{outline:none;border-color:var(--accent)}
+
+/* ── Lightbox / Toast ── */
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:1000;align-items:center;justify-content:center;cursor:zoom-out}
+.lightbox.show{display:flex}
+.lightbox img{max-width:92vw;max-height:92vh;border-radius:5px;box-shadow:0 0 60px rgba(0,0,0,.9)}
+.toast{position:fixed;bottom:18px;right:18px;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 13px;border-radius:6px;font-size:11px;opacity:0;transition:opacity .22s;pointer-events:none;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.7)}
+.toast.show{opacity:1}
+.toast.ok{border-color:rgba(16,185,129,.4);color:var(--green)}
+.toast.err{border-color:rgba(239,68,68,.4);color:var(--red)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span class="logo-pulse"></span>cam-scan</div>
+  <div id="sbadge" class="scan-badge badge-idle">IDLE</div>
+  <div class="hdr-stats">
+    <div class="stat-item"><div class="stat-val" id="sh" style="color:var(--green)">0</div><div class="stat-lbl">Streams</div></div>
+    <div class="stat-item"><div class="stat-val" id="st" style="color:var(--accent)">0</div><div class="stat-lbl">Probed</div></div>
+    <div class="stat-item"><div class="stat-val" id="sa">0</div><div class="stat-lbl">Attempts</div></div>
+    <div class="stat-item"><div class="stat-val" id="se" style="color:var(--red)">0</div><div class="stat-lbl">Errors</div></div>
+    <div class="stat-item"><div class="stat-val" id="sr">0</div><div class="stat-lbl">Att/s</div></div>
+    <div class="stat-item"><div class="stat-val" id="sel">0:00</div><div class="stat-lbl">Elapsed</div></div>
+    <div class="mv-chip" id="mvpill"><span class="mv-dot" id="mvdot"></span><span id="mvcity">Mullvad</span></div>
+    <div class="sse-chip" id="ssechip" title="Server-Sent Events connection"><span class="sse-dot" id="ssedot"></span><span id="sselbl">SSE</span></div>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('dashboard',this)">◉ Dashboard</div>
+  <div class="tab" onclick="switchTab('history',this)">▤ History</div>
+  <div class="tab" onclick="switchTab('settings',this)">⚙ Settings</div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="tab-dashboard" class="tabpanel active">
+<div class="db-layout">
+
+  <div class="side">
+    <div class="side-sec">
+      <div class="sec-hdr">Scan Control</div>
+      <button id="bstart" class="btn btn-primary" onclick="startScan()">▶ Start Scan</button>
+      <button id="bstop" class="btn btn-off" onclick="stopScan()">■ Stop Scan</button>
+    </div>
+    <div class="side-sec">
+      <div class="sec-hdr">Mode</div>
+      <div class="fgrp">
+        <label class="flabel">Target</label>
+        <select id="cmode" class="fctl" onchange="onModeChange()">
+          <option value="unlimited">Unlimited — run forever</option>
+          <option value="count">Fixed count</option>
+        </select>
+      </div>
+      <div class="fgrp" id="ccount-grp" style="display:none">
+        <label class="flabel">Count</label>
+        <input id="ccount" type="number" class="fctl" value="20000" min="100">
+      </div>
+      <div class="fgrp">
+        <label class="flabel">Speed</label>
+        <select id="cspeed" class="fctl">
+          <option value="safe">Safe — 3k pps</option>
+          <option value="medium" selected>Medium — 5k pps</option>
+          <option value="fast">Fast — 10k pps</option>
+          <option value="vps">VPS — 20k pps</option>
+        </select>
+      </div>
+    </div>
+    <div class="side-sec">
+      <div class="sec-hdr">Options</div>
+      <div class="fgrp"><label class="toggle"><input type="checkbox" id="csnap" checked><span>Capture snapshots</span></label></div>
+      <div class="fgrp"><label class="toggle"><input type="checkbox" id="ccaption" checked onchange="setCaptioning(this.checked)"><span>AI analysis (Ollama)</span></label></div>
+      <div class="fgrp"><label class="toggle"><input type="checkbox" id="cusonly"><span>USA IPs only</span></label></div>
+      <div class="fgrp"><label class="toggle"><input type="checkbox" id="cnmap"><span>nmap service detect</span></label></div>
+      <div class="fgrp"><label class="toggle"><input type="checkbox" id="cmv" onchange="onMvChange(this)"><span>Mullvad rotation</span></label></div>
+    </div>
+    <div class="side-sec">
+      <div class="sec-hdr">Enrich Hits</div>
+      <button class="btn btn-ghost" onclick="enrichAll()" id="benrich">⊕ Snapshots + AI</button>
+      <div class="enrich-bar" id="enrich-bar"><div class="enrich-fill" id="enrich-fill"></div></div>
+      <div class="enrich-lbl" id="enrich-status"></div>
+    </div>
+  </div>
+
+  <!-- Feed: toolbar + card grid -->
+  <div class="feed-wrap">
+    <div class="feed-toolbar">
+      <input class="ft-search" id="ft-search" type="search"
+             placeholder="Filter by IP, URL or brand… (press /)"
+             oninput="applyFeedFilter()">
+      <select class="ft-sev" id="ft-sev" onchange="applyFeedFilter()">
+        <option value="">All</option>
+        <option value="critical">Critical</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+      </select>
+      <button class="abtn" id="bfavs" onclick="toggleFavFilter()" title="Show favorites only">⭐ Favs</button>
+      <span class="feed-count" id="feed-count">0 streams</span>
+      <button class="abtn" id="bsnapall" onclick="snapAll()" title="Fetch fresh snapshots for all streams">📷 Snap All</button>
+    </div>
+    <div class="feed" id="feed">
+      <div class="empty-state" id="empty">
+        <div class="empty-icon">◎</div>
+        <div class="empty-title">No streams yet</div>
+        <div class="empty-sub">Start a scan or load persisted hits</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Collapsible log panel -->
+  <div class="logp" id="logp">
+    <div class="logh" onclick="toggleLog()">
+      <span class="logh-dot"></span>
+      <span class="logh-txt">Live Log</span>
+      <span class="logh-arrow">◀</span>
+    </div>
+    <div class="logs" id="logs"></div>
+  </div>
+
+</div>
+</div>
+
+<!-- HISTORY -->
+<div id="tab-history" class="tabpanel">
+<div class="hist-layout">
+  <div class="hist-filters">
+    <input id="hsearch" class="fctl" placeholder="Search IP, URL, brand…" oninput="historyLoad()" style="flex:2;min-width:90px">
+    <select id="hsev" class="fctl" onchange="historyLoad()">
+      <option value="">All severities</option>
+      <option value="critical">Critical</option>
+      <option value="high">High</option>
+      <option value="medium">Medium</option>
+    </select>
+    <select id="hfp" class="fctl" onchange="historyLoad()">
+      <option value="">All brands</option>
+      <option value="hikvision">Hikvision</option>
+      <option value="dahua">Dahua</option>
+      <option value="axis">Axis</option>
+      <option value="dvr">DVR</option>
+      <option value="dlink">D-Link</option>
+    </select>
+    <select id="hsort" class="fctl" onchange="historyLoad()">
+      <option value="ts_desc">Newest first</option>
+      <option value="ts_asc">Oldest first</option>
+      <option value="severity">Severity</option>
+      <option value="ip">IP</option>
+    </select>
+    <button class="btn btn-ghost" style="width:auto;padding:4px 9px" onclick="_histPage=0;historyLoad()" title="Refresh">↺</button>
+  </div>
+  <div class="hist-wrap">
+    <table class="htbl">
+      <thead><tr>
+        <th>Snap</th><th>Time</th><th>IP : Port</th><th>Brand</th>
+        <th>Sev</th><th>Creds</th><th>Vulns</th><th>AI Analysis</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="htbody"></tbody>
+    </table>
+  </div>
+  <div class="hpager">
+    <button id="hprev" onclick="historyPage(-1)" disabled>‹ Prev</button>
+    <span id="hpageinfo">—</span>
+    <button id="hnext" onclick="historyPage(1)">Next ›</button>
+    <span style="margin-left:auto" id="htotal"></span>
+  </div>
+</div>
+</div>
+
+<!-- SETTINGS -->
+<div id="tab-settings" class="tabpanel">
+<div class="settings-layout">
+<div class="settings-inner">
+  <div class="scard">
+    <div class="scard-title">AI Analysis (Ollama)</div>
+    <div class="srow">
+      <div class="srow-info"><div class="srow-key">Enable AI captions</div><div class="srow-desc">Scene description, people count, NSFW flag after each snapshot</div></div>
+      <div class="srow-ctrl"><label class="toggle"><input type="checkbox" id="scaption" onchange="saveCfg('caption_enabled',this.checked)"></label></div>
+    </div>
+    <div class="srow">
+      <div class="srow-info"><div class="srow-key">Vision model</div><div class="srow-desc">Ollama model — must support image input</div></div>
+      <div class="srow-ctrl"><input class="sinput" id="scmodel" onblur="saveCfg('caption_model',this.value)"></div>
+    </div>
+  </div>
+  <div class="scard">
+    <div class="scard-title">Auto-Recording on Human Detection</div>
+    <div class="srow">
+      <div class="srow-info"><div class="srow-key">Global — arm all streams</div><div class="srow-desc">Records every stream when a person is detected. Overrides per-camera arm toggle.</div></div>
+      <div class="srow-ctrl"><label class="toggle"><input type="checkbox" id="sautorecord" onchange="saveCfg('auto_record_humans',this.checked)"></label></div>
+    </div>
+    <div class="srow">
+      <div class="srow-info"><div class="srow-key">Max recording duration (s)</div><div class="srow-desc">Auto-stops each recording after this many seconds</div></div>
+      <div class="srow-ctrl"><input class="sinput" id="sautoduration" type="number" min="5" max="3600" style="width:80px" onblur="saveCfg('auto_record_duration',parseInt(this.value)||60)"></div>
+    </div>
+  </div>
+  <div class="scard">
+    <div class="scard-title">Database</div>
+    <div class="srow">
+      <div class="srow-info"><div class="srow-key">SQLite path</div><div class="srow-desc">output/camscan.db</div></div>
+      <div class="srow-ctrl" style="color:var(--green);font-size:12px;font-weight:600" id="sdbcount"></div>
+    </div>
+    <div class="srow">
+      <div class="srow-info"><div class="srow-key">Export hits</div><div class="srow-desc">Download live-session hits as JSON</div></div>
+      <div class="srow-ctrl"><button class="btn btn-ghost" style="width:auto;padding:4px 11px" onclick="exportHits()">⬇ Export JSON</button></div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('show')">
+  <img id="lbimg" src="" alt="">
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+var scanning = false, es = null;
+var _histPage = 0, _histPageSize = 60, _histTotal = 0;
+var _filterSev = '', _filterText = '';
+
+/* ── Live Store ────────────────────────────────────────────── */
+var LiveStore = {
+  _map: new Map(),
+  _cache: [],
+  normalize: function(h) {
+    if (!h) return h;
+    h.favorited = Number(h.favorited || 0);
+    h.watched   = Number(h.watched   || 0);
+    h.snapshot  = h.snapshot || h.snapshot_path || '';
+    h.snapshot_path = h.snapshot;
+    if (typeof h.caption === 'string' && h.caption) {
+      try { h.caption = JSON.parse(h.caption); } catch(_) { h.caption = { desc: h.caption }; }
+    }
+    h.vulns   = h.vulns   || [];
+    h.codecs  = h.codecs  || [];
+    h.extracted_creds = h.extracted_creds || [];
+    h.nmap_service = h.nmap_service || '';
+    h.nmap_device  = h.nmap_device  || '';
+    h.nmap_cpe     = h.nmap_cpe     || '';
+    return h;
+  },
+  upsert: function(raw) {
+    var h = this.normalize(Object.assign({}, raw));
+    var k = h.ip + ':' + h.port;
+    this._map.set(k, h);
+    var idx = this._cache.findIndex(function(x) { return x.ip === h.ip && x.port === h.port; });
+    if (idx !== -1) this._cache.splice(idx, 1);
+    this._cache.unshift(h);
+    if (this._cache.length > 250) this._cache.pop();
+    return h;
+  },
+  patch: function(ip, port, partial) {
+    var k = ip + ':' + port;
+    var h = this._map.get(k);
+    if (!h) { h = this.normalize({ ip: ip, port: port }); this._map.set(k, h); this._cache.unshift(h); }
+    Object.assign(h, partial);
+    this.normalize(h);
+    var c = this._cache.find(function(x) { return x.ip === ip && x.port === port; });
+    if (c) Object.assign(c, partial);
+    return h;
+  },
+  get: function(ip, port) {
+    return this._map.get(ip + ':' + port) || null;
+  },
+  clear: function() { this._map.clear(); this._cache = []; },
+  all: function() { return this._cache; }
+};
+/* alias for legacy compat */
+var _state_hits_cache = LiveStore._cache;
+
+/* ── Helpers ────────────────────────────────────────────────── */
+var _SEV = { critical: 'CRITICAL', high: 'HIGH', medium: 'MEDIUM', info: 'INFO', '': 'MEDIUM' };
+var _VULN = {
+  unauth_rtsp_access: 'UNAUTH RTSP', weak_default_creds: 'DEF CREDS',
+  hikvision_cve_2017_7921: 'CVE-7921', hikvision_cve_2021_36260: 'CVE-36260',
+  hikvision_cred_extracted: 'CREDS EXT', dahua_cve_2021_33044: 'CVE-33044',
+  dvr_cve_2018_9995: 'CVE-9995', dlink_cve_2020_25078: 'CVE-25078',
+  unauth_http_snapshot: 'HTTP SNAP', credential_disclosure: 'CRED DISC',
+  open_http_interface: 'HTTP EXP', unauth_device_info: 'INFO EXP',
+};
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.tabpanel').forEach(function(p) { p.classList.remove('active'); });
+  el.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'history') { _histPage = 0; historyLoad(); }
+  if (name === 'settings') settingsLoad();
+}
+
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmtTime(s) {
+  var m = Math.floor(s / 60);
+  return m + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+}
+function fmtAgo(ts) {
+  if (!ts) return '';
+  var d = Math.floor(Date.now() / 1000 - ts);
+  if (d < 60)    return 'just now';
+  if (d < 3600)  return Math.floor(d / 60) + 'm ago';
+  if (d < 86400) return Math.floor(d / 3600) + 'h ago';
+  return Math.floor(d / 86400) + 'd ago';
+}
+function clip(text) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text)
+      .then(function() { showToast('Copied!', 'ok'); })
+      .catch(function() { showToast('Copy failed', 'err'); });
+  }
+}
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (type || 'ok') + ' show';
+  setTimeout(function() { t.className = 'toast'; }, 2200);
+}
+function lightbox(src) {
+  document.getElementById('lbimg').src = src;
+  document.getElementById('lightbox').classList.add('show');
+}
+function encodeSnap(p) {
+  if (!p) return '';
+  var i = p.lastIndexOf('output/');
+  if (i >= 0) p = p.slice(i + 7);
+  return p.split('/').map(encodeURIComponent).join('/');
+}
+function onModeChange() {
+  document.getElementById('ccount-grp').style.display =
+    document.getElementById('cmode').value === 'count' ? 'block' : 'none';
+}
+function onMvChange(cb) {
+  document.getElementById('mvpill').style.display = cb.checked ? 'flex' : 'none';
+}
+function toggleLog() {
+  document.getElementById('logp').classList.toggle('collapsed');
+}
+function mk(tag, cls, txt) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (txt != null) e.textContent = txt;
+  return e;
+}
+
+/* ── Feed filter ──────────────────────────────────────────── */
+function _hitMatches(h) {
+  if (_showFavsOnly && !h.favorited) return false;
+  if (_filterSev && h.severity !== _filterSev) return false;
+  if (_filterText) {
+    var t = _filterText.toLowerCase();
+    if (!(h.ip || '').toLowerCase().includes(t) &&
+        !(h.rtsp_url || '').toLowerCase().includes(t) &&
+        !(h.fingerprint || '').toLowerCase().includes(t) &&
+        !(h.nmap_service || '').toLowerCase().includes(t) &&
+        !(h.nmap_device || '').toLowerCase().includes(t)) return false;
+  }
+  return true;
+}
+function applyFeedFilter() {
+  _filterSev = document.getElementById('ft-sev').value;
+  _filterText = document.getElementById('ft-search').value.trim();
+  var vis = 0;
+  document.querySelectorAll('#feed .card').forEach(function(c) {
+    var h = LiveStore.get(
+      c.id.slice(1).replace(/-(\d+)$/, ':$1').replace(/-/g, '.').replace(':','#').replace('#','.')
+        .replace(/^(.+)\.(\d+)$/, '$1:$2'),  /* decode cid back to ip:port — simpler via data attr */
+      0  /* placeholder, overridden by data-ip / data-port */
+    );
+    /* use data attrs for reliable reverse-lookup */
+    var ip = c.dataset.ip, port = parseInt(c.dataset.port || 0, 10);
+    var lh = LiveStore.get(ip, port);
+    var show = lh ? _hitMatches(lh) : true;
+    c.style.display = show ? '' : 'none';
+    if (show) vis++;
+  });
+  updateFeedCount(vis);
+}
+function updateFeedCount(visible) {
+  var total = document.querySelectorAll('#feed .card').length;
+  if (visible === undefined) {
+    visible = 0;
+    document.querySelectorAll('#feed .card').forEach(function(c) {
+      if (c.style.display !== 'none') visible++;
+    });
+  }
+  var el = document.getElementById('feed-count');
+  var active = _filterSev || _filterText || _showFavsOnly;
+  el.textContent = active ? (visible + ' / ' + total + ' streams') :
+                             (total + ' stream' + (total !== 1 ? 's' : ''));
+  el.className = 'feed-count' + (active ? ' active' : '');
+}
+
+/* ── Caption overlay DOM builder ──────────────────────────── */
+function buildCapOverlay(cap) {
+  if (!cap) return null;
+  var desc = typeof cap === 'string' ? cap : (cap.desc || '');
+  if (!desc) return null;
+  var ov = mk('div', 'cap-overlay');
+  ov.appendChild(mk('div', 'cap-desc', desc));
+  var meta = mk('div', 'cap-meta');
+  if (cap.scene || cap.location) {
+    var t = mk('span', 'cap-tag'); t.textContent = '\u{1F4CD} ' + (cap.scene || cap.location);
+    meta.appendChild(t);
+  }
+  if (cap.time) {
+    var t2 = mk('span', 'cap-tag');
+    t2.textContent = cap.time === 'day' ? '☀️ day' : cap.time === 'night' ? '🌙 night' : cap.time;
+    meta.appendChild(t2);
+  }
+  if (cap.people != null) {
+    var t3 = mk('span', 'cap-tag'); t3.textContent = '👤 ' + cap.people;
+    meta.appendChild(t3);
+  }
+  if (cap.nsfw && cap.nsfw > 3) {
+    var t4 = mk('span', 'cap-tag warn'); t4.textContent = '⚠ NSFW ' + cap.nsfw + '/10';
+    meta.appendChild(t4);
+  }
+  ov.appendChild(meta);
+  return ov;
+}
+
+/* ── Card builder ──────────────────────────────────────────── */
+function vulgClass(v) {
+  if (v.includes('unauth_rtsp') || v.includes('36260') || v.includes('33044') ||
+      v.includes('9995') || v.includes('25078')) return 'vtag vtag-crit';
+  if (v.includes('cred') || v.includes('7921') || v.includes('default')) return 'vtag vtag-high';
+  return 'vtag vtag-med';
+}
+
+function cardId(ip, port) {
+  return 'c' + String(ip).replace(/\./g, '-') + '-' + port;
+}
+
+function buildCard(h, replace) {
+  var cid = cardId(h.ip, h.port);
+  var existing = document.getElementById(cid);
+  if (existing && !replace) return null;  /* already rendered, not a forced update */
+
+  var sev = h.severity || 'medium';
+  var url = h.rtsp_url || '';
+  var snap = h.snapshot || h.snapshot_path || '';
+  var cred = (h.username || '<empty>') + ':' + (h.password != null ? (h.password || '<empty>') : '?');
+  var vulns = h.vulns || [];
+
+  var card = mk('div', 'card sev-' + sev);
+  card.id = cid;
+  card.dataset.ip = h.ip;
+  card.dataset.port = h.port;
+
+  /* Header */
+  var hdr = mk('div', 'card-header');
+  var left = mk('div');
+  left.style.cssText = 'display:flex;align-items:center;gap:4px;min-width:0;flex:1;overflow:hidden';
+  left.appendChild(mk('span', 'card-ip', h.ip + ':' + h.port));
+  left.appendChild(mk('span', 'badge-sev badge-' + sev, (_SEV[sev] || sev.toUpperCase())));
+  if (h.fingerprint && h.fingerprint !== 'rtsp-camera-default')
+    left.appendChild(mk('span', 'badge-fp', h.fingerprint));
+  if (h.unauth) left.appendChild(mk('span', 'unauth-badge', '🔓 UNAUTH'));
+  if (vulns.length) left.appendChild(mk('span', 'vuln-badge', vulns.length + 'v'));
+  hdr.appendChild(left);
+
+  var right = mk('div', 'card-hdr-right');
+  var recBadge = mk('span', 'rec-badge', '🔴 REC');
+  recBadge.id = cid + '-rec'; recBadge.style.display = 'none';
+  right.appendChild(recBadge);
+
+  var wBtn = mk('button', 'icon-btn' + (h.watched ? ' watch-on' : ''), '📹');
+  wBtn.id = cid + '-watch'; wBtn.title = 'Arm: auto-record on human detection';
+  wBtn.addEventListener('click', function() { toggleWatch(h.ip, h.port, wBtn); });
+  right.appendChild(wBtn);
+
+  var fBtn = mk('button', 'icon-btn' + (h.favorited ? ' fav-on' : ''), '⭐');
+  fBtn.id = cid + '-fav'; fBtn.title = 'Favorite';
+  fBtn.addEventListener('click', function() { toggleFav(h.ip, h.port, fBtn); });
+  right.appendChild(fBtn);
+
+  var timeEl = mk('span', 'card-time', fmtAgo(h.ts));
+  timeEl.title = h.ts ? new Date(h.ts * 1000).toLocaleString() : '';
+  right.appendChild(timeEl);
+
+  hdr.appendChild(right);
+  card.appendChild(hdr);
+
+  /* Body */
+  var body = mk('div', 'card-body');
+
+  /* Snapshot */
+  var snapDiv = mk('div', 'card-snap');
+  snapDiv.id = cid + '-snap';
+  if (snap) {
+    var img = document.createElement('img');
+    img.src = '/snapshots/' + encodeSnap(snap) + '?t=' + Date.now();
+    img.loading = 'lazy'; img.alt = '';
+    img.addEventListener('click', function() { lightbox(img.src); });
+    snapDiv.appendChild(img);
+    var ov = buildCapOverlay(h.caption);
+    if (ov) snapDiv.appendChild(ov);
+  } else {
+    var ns = mk('div', 'no-snap', 'No snapshot\nyet');
+    ns.style.whiteSpace = 'pre-line';
+    snapDiv.appendChild(ns);
+  }
+  body.appendChild(snapDiv);
+
+  /* Info */
+  var info = mk('div', 'card-info');
+  var rows = mk('div', 'info-rows');
+  function addRow(lbl, val) {
+    var r = mk('div', 'info-row');
+    r.appendChild(mk('span', 'info-lbl', lbl));
+    r.appendChild(mk('span', 'info-val', val));
+    rows.appendChild(r);
+  }
+  addRow('Creds', cred);
+  addRow('Auth',  h.auth_scheme || '—');
+  addRow('Stream', (h.sdp_tracks || 0) + ' trk · ' + ((h.codecs || []).join(', ') || 'unknown'));
+  var nmapLabel = h.nmap_service || h.nmap_device || '';
+  if (nmapLabel) {
+    var nr = mk('div', 'info-row nmap-row');
+    nr.id = cid + '-nmap';
+    nr.appendChild(mk('span', 'info-lbl', 'Device'));
+    var nv = mk('span', 'info-val');
+    nv.textContent = nmapLabel;
+    nv.title = [h.nmap_service, h.nmap_cpe].filter(Boolean).join(' | ');
+    nr.appendChild(nv);
+    rows.appendChild(nr);
+  }
+  if (vulns.length) {
+    var vd = mk('div', 'vuln-tags');
+    vulns.forEach(function(v) { vd.appendChild(mk('span', vulgClass(v), _VULN[v] || v)); });
+    rows.appendChild(vd);
+  }
+  info.appendChild(rows);
+
+  var urlDiv = mk('div', 'info-url', url || '(no url)');
+  urlDiv.title = 'Click to copy URL';
+  urlDiv.addEventListener('click', function() { clip(url); });
+  info.appendChild(urlDiv);
+  body.appendChild(info);
+  card.appendChild(body);
+
+  /* Actions */
+  var acts = mk('div', 'card-actions');
+  function abtn(cls, txt, fn) {
+    var b = mk('button', 'abtn ' + (cls || ''), txt);
+    b.addEventListener('click', fn);
+    acts.appendChild(b);
+  }
+  function bestUrl() {
+    var cur = LiveStore.get(h.ip, h.port);
+    return (cur && cur.rtsp_url) || url || h.rtsp_url || '';
+  }
+  abtn('primary', '▶ Live', function() { launch(bestUrl(), 'view', h.ip, h.port); });
+  abtn('green', '⏺▶ Rec+View', function() { startRecording(h.ip, h.port); launch(bestUrl(), 'view', h.ip, h.port); });
+  var recBtn = mk('button', 'abtn', '⏺ Record');
+  recBtn.id = cid + '-recbtn';
+  recBtn.addEventListener('click', function() { startRecording(h.ip, h.port); });
+  acts.appendChild(recBtn);
+  var stopBtn = mk('button', 'abtn red', '⏹ Stop');
+  stopBtn.id = cid + '-stopbtn';
+  stopBtn.style.display = 'none';
+  stopBtn.addEventListener('click', function() { stopRecording(h.ip, h.port); });
+  acts.appendChild(stopBtn);
+  abtn('',        '📋 URL', function() { clip(bestUrl()); });
+  if (h.http_snapshot_url) abtn('', '📷 HTTP', function() { clip(h.http_snapshot_url); });
+  abtn('',        '🔄 Snap', function() { retrySnap(bestUrl(), h.ip, h.port); });
+  card.appendChild(acts);
+  return card;
+}
+
+/* ── Feed management ──────────────────────────────────────── */
+function addHit(raw, fromSSE) {
+  var h = LiveStore.upsert(raw);
+  var empty = document.getElementById('empty');
+  if (empty) empty.remove();
+  var feed = document.getElementById('feed');
+  var existing = document.getElementById(cardId(h.ip, h.port));
+  var card = buildCard(h, !!fromSSE);
+  if (!card) return;
+  if (!_hitMatches(h)) card.style.display = 'none';
+  if (existing && fromSSE) {
+    /* replace old card in-place so position is preserved */
+    existing.replaceWith(card);
+  } else {
+    feed.insertBefore(card, feed.firstChild);
+    var all = feed.querySelectorAll('.card');
+    if (all.length > 200) all[all.length - 1].remove();
+  }
+  updateFeedCount();
+}
+
+/* ── Launch / recording / snap ────────────────────────────── */
+async function launch(url, mode, ip, port) {
+  try {
+    var r = await fetch('/api/stream/launch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rtsp_url: url, mode: mode, ip: ip, port: port })
+    });
+    var d = await r.json();
+    if (d.ok) showToast(mode === 'recprev' ? 'Opened rec + view terminals' : 'Launched in terminal', 'ok');
+    else { clip(url); showToast('No terminal found — URL copied', 'ok'); }
+  } catch (e) { clip(url); showToast('URL copied', 'ok'); }
+}
+
+async function retrySnap(url, ip, port) {
+  showToast('Fetching snapshot…');
+  try {
+    await fetch('/api/snapshot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rtsp_url: url, ip: ip, port: port })
+    });
+  } catch (e) { showToast('Request failed', 'err'); }
+}
+
+async function startRecording(ip, port) {
+  try {
+    var r = await fetch('/api/recording/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip: ip, port: port })
+    });
+    var d = await r.json();
+    if (d.ok) showToast('Recording started', 'ok');
+    else showToast(d.msg || 'Record failed', 'err');
+  } catch (e) { showToast('Request failed', 'err'); }
+}
+
+async function stopRecording(ip, port) {
+  try {
+    var r = await fetch('/api/recording/stop', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip: ip, port: port })
+    });
+    var d = await r.json();
+    showToast(d.ok ? 'Recording stopped' : (d.msg || 'Not recording'), d.ok ? 'ok' : 'err');
+  } catch (e) { showToast('Request failed', 'err'); }
+}
+
+async function snapAll() {
+  var btn = document.getElementById('bsnapall');
+  if (btn) { btn.disabled = true; btn.textContent = '📷 Snapping…'; }
+  try {
+    var r = await fetch('/api/snapshot/all', { method: 'POST' });
+    var d = await r.json();
+    showToast('Queued ' + (d.queued || 0) + ' snapshot(s)', 'ok');
+  } catch (e) { showToast('Failed: ' + e.message, 'err'); }
+  setTimeout(function() {
+    if (btn) { btn.disabled = false; btn.textContent = '📷 Snap All'; }
+  }, 3000);
+}
+
+function updateNmapInfo(ip, port, data) {
+  var cid = cardId(ip, port);
+  var card = document.getElementById(cid);
+  if (!card) return;
+  var existing = card.querySelector('.nmap-row');
+  var label = data.nmap_service || data.nmap_device || '';
+  if (!label) { if (existing) existing.remove(); return; }
+  if (!existing) {
+    existing = mk('div', 'info-row nmap-row');
+    existing.id = cid + '-nmap';
+    existing.appendChild(mk('span', 'info-lbl', 'Device'));
+    existing.appendChild(mk('span', 'info-val'));
+    var rows = card.querySelector('.info-rows');
+    if (rows) rows.appendChild(existing);
+  }
+  var nv = existing.querySelector('.info-val');
+  if (nv) {
+    nv.textContent = label;
+    nv.title = [data.nmap_service, data.nmap_cpe].filter(Boolean).join(' | ');
+  }
+}
+
+async function toggleFav(ip, port, btn) {
+  var next = btn.classList.contains('fav-on') ? 0 : 1;
+  try {
+    await fetch('/api/hit/favorite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip: ip, port: port, value: next })
+    });
+    btn.classList.toggle('fav-on', !!next);
+    LiveStore.patch(ip, port, { favorited: next });
+    showToast(next ? 'Favorited' : 'Unfavorited', 'ok');
+    if (_showFavsOnly) applyFeedFilter();
+  } catch (e) { showToast('Failed', 'err'); }
+}
+
+async function toggleWatch(ip, port, btn) {
+  var next = btn.classList.contains('watch-on') ? 0 : 1;
+  try {
+    await fetch('/api/hit/watch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip: ip, port: port, value: next })
+    });
+    btn.classList.toggle('watch-on', !!next);
+    LiveStore.patch(ip, port, { watched: next });
+    showToast(next ? 'Armed — records on human detect' : 'Auto-record disarmed', 'ok');
+  } catch (e) { showToast('Failed', 'err'); }
+}
+
+/* ── Snapshot / caption / vuln updates ───────────────────── */
+function updateSnapshot(ip, port, path) {
+  LiveStore.patch(ip, port, { snapshot: path, snapshot_path: path });
+  var cid = cardId(ip, port);
+  var sd = document.getElementById(cid + '-snap');
+  if (!sd) return;
+  var h = LiveStore.get(ip, port) || {};
+  sd.innerHTML = '';
+  var img = document.createElement('img');
+  img.src = '/snapshots/' + encodeSnap(path) + '?t=' + Date.now();
+  img.loading = 'lazy'; img.alt = '';
+  img.addEventListener('click', function() { lightbox(img.src); });
+  sd.appendChild(img);
+  var ov = buildCapOverlay(h.caption);
+  if (ov) sd.appendChild(ov);
+}
+
+function updateCaption(ip, port, cap) {
+  LiveStore.patch(ip, port, { caption: cap });
+  var cid = cardId(ip, port);
+  var sd = document.getElementById(cid + '-snap');
+  if (!sd) return;
+  var old = sd.querySelector('.cap-overlay');
+  if (old) old.remove();
+  var ov = buildCapOverlay(cap);
+  if (ov) sd.appendChild(ov);
+}
+
+function updateVulns(ip, port, data) {
+  var patch = { vulns: data.vulns || [], severity: data.severity || '', fingerprint: data.fingerprint || '' };
+  if (data.extracted_creds) patch.extracted_creds = data.extracted_creds;
+  LiveStore.patch(ip, port, patch);
+  var cid = cardId(ip, port);
+  var card = document.getElementById(cid);
+  if (!card) return;
+  card.className = 'card sev-' + (data.severity || 'medium');
+  /* update vuln tags strip */
+  var old = card.querySelector('.vuln-tags');
+  if (old) old.remove();
+  var vulns = data.vulns || [];
+  if (vulns.length) {
+    var vd = mk('div', 'vuln-tags');
+    vulns.forEach(function(v) { vd.appendChild(mk('span', vulgClass(v), _VULN[v] || v)); });
+    var infoRows = card.querySelector('.info-rows');
+    if (infoRows) infoRows.appendChild(vd);
+  }
+  /* update vuln count badge */
+  var vb = card.querySelector('.vuln-badge');
+  if (vb) vb.textContent = vulns.length + 'v';
+}
+
+/* ── Scan controls ────────────────────────────────────────── */
+async function startScan() {
+  showToast('Starting scan…');
+  var body = {
+    speed:     document.getElementById('cspeed').value,
+    unlimited: document.getElementById('cmode').value === 'unlimited',
+    count:     parseInt(document.getElementById('ccount').value) || 20000,
+    snapshots: document.getElementById('csnap').checked,
+    us_only:   document.getElementById('cusonly').checked,
+    nmap:      document.getElementById('cnmap').checked,
+    mullvad:   document.getElementById('cmv').checked,
+    mullvad_interval: 30,
+  };
+  try {
+    var r = await fetch('/api/scan/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (r.ok) {
+      var d = await r.json();
+      showToast('Scan started — ' + d.run_id, 'ok');
+      setScanning(true);
+    } else {
+      var e = await r.json();
+      showToast('Error: ' + (e.detail || 'unknown'), 'err');
+    }
+  } catch (err) { showToast('Request failed: ' + err.message, 'err'); }
+}
+
+async function stopScan() { await fetch('/api/scan/stop', { method: 'POST' }); }
+
+function setScanning(on) {
+  scanning = on;
+  var sb = document.getElementById('sbadge');
+  if (sb) { sb.className = 'scan-badge ' + (on ? 'badge-run' : 'badge-idle'); sb.textContent = on ? 'SCANNING' : 'IDLE'; }
+  var bs = document.getElementById('bstart');
+  if (bs) bs.className = 'btn ' + (on ? 'btn-off' : 'btn-primary');
+  var bo = document.getElementById('bstop');
+  if (bo) bo.className = 'btn ' + (on ? 'btn-danger' : 'btn-off');
+}
+
+async function enrichAll() {
+  document.getElementById('benrich').className = 'btn btn-off';
+  document.getElementById('enrich-bar').style.display = 'block';
+  document.getElementById('enrich-status').textContent = 'Starting…';
+  try {
+    var r = await fetch('/api/enrich/all', { method: 'POST' });
+    var d = await r.json();
+    if (d.queued === 0) { showToast('All hits already enriched', 'ok'); resetEnrich(); }
+    else showToast('Enriching ' + d.queued + ' hits…', 'ok');
+  } catch (e) { showToast('Enrich failed: ' + e.message, 'err'); resetEnrich(); }
+}
+
+function resetEnrich() {
+  document.getElementById('benrich').className = 'btn btn-ghost';
+  document.getElementById('enrich-bar').style.display = 'none';
+  document.getElementById('enrich-status').textContent = '';
+}
+
+async function setCaptioning(v) {
+  try {
+    await fetch('/api/caption/toggle', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: v })
+    });
+    var sc = document.getElementById('scaption');
+    if (sc) sc.checked = !!v;
+  } catch (_) {}
+}
+
+/* ── History ──────────────────────────────────────────────── */
+function historyPage(d) { _histPage = Math.max(0, _histPage + d); historyLoad(); }
+
+async function historyLoad() {
+  var p = new URLSearchParams({
+    limit: _histPageSize, offset: _histPage * _histPageSize,
+    severity:    document.getElementById('hsev').value,
+    fingerprint: document.getElementById('hfp').value,
+    search:      document.getElementById('hsearch').value,
+    sort:        document.getElementById('hsort').value,
+  });
+  try {
+    var r = await fetch('/api/history?' + p);
+    var d = await r.json();
+    _histTotal = d.total;
+    renderHistory(d.rows);
+    document.getElementById('hpageinfo').textContent =
+      'Page ' + (_histPage + 1) + ' / ' + Math.max(1, Math.ceil(d.total / _histPageSize));
+    document.getElementById('htotal').textContent = d.total + ' hits';
+    document.getElementById('hprev').disabled = _histPage === 0;
+    document.getElementById('hnext').disabled = (_histPage + 1) * _histPageSize >= d.total;
+  } catch (e) { console.error(e); }
+}
+
+function renderHistory(rows) {
+  var tbody = document.getElementById('htbody');
+  tbody.innerHTML = '';
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:28px;font-size:11px">No records match filters</td></tr>';
+    return;
+  }
+  rows.forEach(function(h) {
+    var snap = h.snapshot_path || h.snapshot || '';
+    var ts   = h.ts ? new Date(h.ts * 1000).toLocaleString() : '';
+    var cred = (h.username || '') + (h.password != null ? ':' + (h.password || '') : '');
+    var sev  = h.severity || '';
+    var sc = { critical: 'var(--crit)', high: 'var(--high)', medium: 'var(--med)' }[sev] || 'var(--muted)';
+    var cap = h.caption;
+    var url = h.rtsp_url || '';
+    var capHtml = '<span style="color:var(--muted)">—</span>';
+    if (cap) {
+      var desc = typeof cap === 'string' ? cap : (cap.desc || '');
+      capHtml = '<div class="cap-cell"><div class="cdesc">' + esc(desc.substring(0, 100)) + '</div><div class="cmeta">';
+      if (cap.scene || cap.location) capHtml += '<span>📍 ' + esc(cap.scene || cap.location) + '</span>';
+      if (cap.people != null) capHtml += '<span>👤 ' + cap.people + '</span>';
+      if (cap.nsfw && cap.nsfw > 3) capHtml += '<span style="color:var(--red)">⚠ ' + cap.nsfw + '/10</span>';
+      capHtml += '</div></div>';
+    }
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + (snap ? '<img class="tsnap" src="/snapshots/' + encodeSnap(snap) + '" loading="lazy" onclick="lightbox(this.src)" alt="">' : '<span style="color:var(--muted)">—</span>') + '</td>' +
+      '<td style="white-space:nowrap;font-size:9px;color:var(--muted)">' + esc(ts) + '</td>' +
+      '<td style="font-weight:700;font-size:12px">' + esc(h.ip) + ':' + h.port + '</td>' +
+      '<td style="font-size:10px">' + esc(h.fingerprint || '—') + '</td>' +
+      '<td style="font-weight:700;font-size:10px;color:' + sc + '">' + esc(sev.toUpperCase() || '—') + '</td>' +
+      '<td style="font-size:10px;color:var(--muted)">' + esc(cred) + '</td>' +
+      '<td style="font-size:9px;color:var(--muted)">' + (h.vulns || []).slice(0, 3).map(function(v) { return esc(_VULN[v] || v); }).join('<br>') + '</td>' +
+      '<td>' + capHtml + '</td><td></td>';
+    var ac = tr.querySelector('td:last-child');
+    ac.style.cssText = 'white-space:nowrap;vertical-align:middle';
+    if (url) {
+      function hbtn(cls, txt, fn) {
+        var b = mk('button', 'abtn ' + (cls || ''), txt);
+        b.style.margin = '1px'; b.addEventListener('click', fn); ac.appendChild(b);
+      }
+      hbtn('primary', '▶ Live',   function() { launch(url, 'view',    h.ip, h.port); });
+      hbtn('green',   '⏺▶',  function() { launch(url, 'recprev', h.ip, h.port); });
+      hbtn('',        '📋',  function() { clip(url); });
+      hbtn('',        '🔄',  function() {
+        fetch('/api/snapshot', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rtsp_url: url, ip: h.ip, port: h.port }) })
+          .then(function() { showToast('Snapshot queued', 'ok'); });
+      });
+    }
+    tbody.appendChild(tr);
+  });
+}
+
+/* ── Settings ─────────────────────────────────────────────── */
+async function settingsLoad() {
+  try {
+    var r = await fetch('/api/config');
+    var d = await r.json();
+    var el;
+    if ((el = document.getElementById('scaption')))   el.checked = !!d.caption_enabled;
+    if ((el = document.getElementById('ccaption')))   el.checked = !!d.caption_enabled;
+    if ((el = document.getElementById('scmodel')))    el.value   = d.caption_model || '';
+    if ((el = document.getElementById('sautorecord')))el.checked = !!d.auto_record_humans;
+    if ((el = document.getElementById('sautoduration')))el.value = d.auto_record_duration || 60;
+    var hr = await fetch('/api/history?limit=1');
+    var hd = await hr.json();
+    if ((el = document.getElementById('sdbcount'))) el.textContent = hd.total + ' hits';
+  } catch (_) {}
+}
+
+async function saveCfg(key, value) {
+  try {
+    await fetch('/api/config', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: key, value: value })
+    });
+    showToast('Saved', 'ok');
+  } catch (_) { showToast('Save failed', 'err'); }
+}
+
+function exportHits() {
+  var blob = new Blob([JSON.stringify(LiveStore.all(), null, 2)], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'camscan_' + Date.now() + '.json';
+  a.click();
+}
+
+/* ── Log ──────────────────────────────────────────────────── */
+function addLog(msg, level) {
+  var cls = 'le';
+  if (level === 'WARNING' || level === 'warn') cls = 'le warn';
+  if (level === 'ERROR'   || level === 'error') cls = 'le err';
+  if (msg && msg.includes('VERIFIED')) cls = 'le hit';
+  var e = mk('div', cls, msg);
+  var logs = document.getElementById('logs');
+  logs.appendChild(e);
+  if (logs.children.length > 400) logs.removeChild(logs.firstChild);
+  logs.scrollTop = logs.scrollHeight;
+}
+
+/* ── SSE status ───────────────────────────────────────────── */
+function setSseStatus(state) {
+  var dot = document.getElementById('ssedot');
+  var lbl = document.getElementById('sselbl');
+  if (state === 'up')  { dot.className = 'sse-dot up';  lbl.textContent = 'Live'; }
+  else if (state === 'err') { dot.className = 'sse-dot err'; lbl.textContent = 'Retry'; }
+  else { dot.className = 'sse-dot'; lbl.textContent = 'SSE'; }
+}
+
+/* ── SSE connection ───────────────────────────────────────── */
+var _reconnectAttempts = 0;
+var _loadedOnce = false;
+var _loadGen = 0;   /* incremented on each load to cancel in-flight batches */
+var _showFavsOnly = false;
+
+function _loadHits() {
+  var gen = ++_loadGen;
+  return fetch('/api/hits').then(function(r) { return r.json(); }).then(function(hits) {
+    if (gen !== _loadGen) return;   /* superseded by a newer load */
+    LiveStore.clear();
+    var feed = document.getElementById('feed');
+    if (feed) feed.innerHTML = hits.length ? '' :
+      '<div class="empty-state" id="empty"><div class="empty-icon">◎</div>' +
+      '<div class="empty-title">No streams yet</div>' +
+      '<div class="empty-sub">Start a scan to discover cameras</div></div>';
+    var ordered = hits.slice().reverse();
+    var BATCH = 20, i = 0;
+    function next() {
+      if (gen !== _loadGen) return;   /* cancel if superseded */
+      var end = Math.min(i + BATCH, ordered.length);
+      for (; i < end; i++) addHit(ordered[i]);
+      updateFeedCount();
+      if (i < ordered.length) setTimeout(next, 0);
+    }
+    if (ordered.length) next();
+    else updateFeedCount();
+  });
+}
+
+function toggleFavFilter() {
+  _showFavsOnly = !_showFavsOnly;
+  var btn = document.getElementById('bfavs');
+  if (btn) btn.style.background = _showFavsOnly ? 'rgba(245,158,11,.18)' : '';
+  applyFeedFilter();
+}
+
+function connectSSE() {
+  if (es) { try { es.close(); } catch (_) {} }
+  setSseStatus('connecting');
+  es = new EventSource('/api/events');
+
+  es.onopen = function() {
+    setSseStatus('up');
+    _reconnectAttempts = 0;
+    /* resync on reconnect (not on the very first open — initial load handles that) */
+    if (_loadedOnce) _loadHits().catch(function() {});
+    _loadedOnce = true;
+  };
+
+  function safe(fn) {
+    return function(e) {
+      try { fn(e); } catch (err) { console.error('sse handler error', err); }
+    };
+  }
+
+  es.addEventListener('stats', safe(function(e) {
+    var d = JSON.parse(e.data), el;
+    if ((el = document.getElementById('sh')))  el.textContent = d.hits;
+    if ((el = document.getElementById('st')))  el.textContent = d.hosts;
+    if ((el = document.getElementById('sa')))  el.textContent = d.attempts;
+    if ((el = document.getElementById('se')))  el.textContent = d.errors;
+    if ((el = document.getElementById('sr')))  el.textContent = Math.round(d.rate);
+    if ((el = document.getElementById('sel'))) el.textContent = fmtTime(d.elapsed);
+  }));
+
+  es.addEventListener('hit',           safe(function(e) { addHit(JSON.parse(e.data), true); }));
+  es.addEventListener('snapshot_saved',safe(function(e) { var d=JSON.parse(e.data); updateSnapshot(d.ip,d.port,d.path); }));
+  es.addEventListener('caption_update',safe(function(e) { var d=JSON.parse(e.data); updateCaption(d.ip,d.port,d.caption); }));
+  es.addEventListener('vuln_update',   safe(function(e) { var d=JSON.parse(e.data); updateVulns(d.ip,d.port,d); }));
+
+  es.addEventListener('enrich_progress', safe(function(e) {
+    var d = JSON.parse(e.data);
+    if (d.total === 0) return;
+    var pct = Math.round(d.done / d.total * 100);
+    var fill = document.getElementById('enrich-fill');
+    if (fill) fill.style.width = pct + '%';
+    var st = document.getElementById('enrich-status');
+    if (st) st.textContent = d.done === d.total
+      ? 'Done — ' + d.total + ' hits enriched'
+      : 'Enriching ' + d.ip + '… (' + d.done + '/' + d.total + ')';
+    if (d.done === d.total) setTimeout(resetEnrich, 3000);
+  }));
+
+  es.addEventListener('scan_started', safe(function() { setScanning(true); }));
+  es.addEventListener('scan_stopped', safe(function() { setScanning(false); }));
+
+  es.addEventListener('clear_hits', safe(function() {
+    _loadGen++;   /* cancel any in-flight batch loader */
+    LiveStore.clear();
+    var feed = document.getElementById('feed');
+    if (feed) feed.innerHTML = '<div class="empty-state" id="empty">' +
+      '<div class="empty-icon">◎</div>' +
+      '<div class="empty-title">Scan started</div>' +
+      '<div class="empty-sub">Discovering cameras…</div></div>';
+    updateFeedCount();
+  }));
+
+  es.addEventListener('mullvad', safe(function(e) {
+    var d = JSON.parse(e.data);
+    var city = document.getElementById('mvcity');
+    if (city) city.textContent = d.city;
+    var dot = document.getElementById('mvdot');
+    if (dot) dot.className = 'mv-dot ' + (d.connected ? 'mv-on' : '');
+  }));
+
+  es.addEventListener('log', safe(function(e) {
+    var d = JSON.parse(e.data); addLog(d.msg, d.level);
+  }));
+
+  es.addEventListener('rtsp_url_updated', safe(function(e) {
+    var d = JSON.parse(e.data);
+    LiveStore.patch(d.ip, d.port, { rtsp_url: d.url });
+    var cid = cardId(d.ip, d.port);
+    var card = document.getElementById(cid);
+    if (card) { var u = card.querySelector('.info-url'); if (u) u.textContent = d.url; }
+    addLog('URL updated ' + d.ip + ':' + d.port + ' → ' + d.url, 'ok');
+  }));
+
+  es.addEventListener('recording_started', safe(function(e) {
+    var d = JSON.parse(e.data);
+    var b = document.getElementById(cardId(d.ip, d.port) + '-rec');
+    if (b) b.style.display = '';
+    var rb = document.getElementById(cardId(d.ip, d.port) + '-recbtn');
+    var sb = document.getElementById(cardId(d.ip, d.port) + '-stopbtn');
+    if (rb) rb.style.display = 'none';
+    if (sb) sb.style.display = '';
+    addLog('🔴 REC started ' + d.ip + ':' + d.port + (d.trigger === 'human_detected' ? ' [human]' : ''), 'warn');
+  }));
+
+  es.addEventListener('recording_stopped', safe(function(e) {
+    var d = JSON.parse(e.data);
+    var b = document.getElementById(cardId(d.ip, d.port) + '-rec');
+    if (b) b.style.display = 'none';
+    var rb = document.getElementById(cardId(d.ip, d.port) + '-recbtn');
+    var sb = document.getElementById(cardId(d.ip, d.port) + '-stopbtn');
+    if (rb) rb.style.display = '';
+    if (sb) sb.style.display = 'none';
+    addLog('Saved: ' + d.path, 'ok');
+  }));
+
+  es.addEventListener('nmap_update', safe(function(e) {
+    var d = JSON.parse(e.data);
+    LiveStore.patch(d.ip, d.port, {
+      nmap_service: d.nmap_service || '',
+      nmap_device:  d.nmap_device  || '',
+      nmap_cpe:     d.nmap_cpe     || '',
+    });
+    updateNmapInfo(d.ip, d.port, d);
+  }));
+
+  es.onerror = function() {
+    setSseStatus('err');
+    _reconnectAttempts++;
+    var wait = Math.min(1500 * _reconnectAttempts, 12000);
+    setTimeout(connectSSE, wait);
+  };
+}
+
+/* ── Keyboard shortcut: / to focus filter ─────────────────── */
+document.addEventListener('keydown', function(e) {
+  if (e.key === '/' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
+    e.preventDefault();
+    document.getElementById('ft-search').focus();
+  }
+  if (e.key === 'Escape' && document.activeElement.id === 'ft-search') {
+    document.getElementById('ft-search').value = '';
+    _filterText = '';
+    applyFeedFilter();
+    document.activeElement.blur();
+  }
+});
+
+/* ── Boot ─────────────────────────────────────────────────── */
+/* Load status and initial hits, then connect SSE */
+fetch('/api/status').then(function(r) { return r.json(); }).then(function(s) { setScanning(s.scanning); }).catch(function() {});
+_loadHits().catch(function() {}).then(function() {
+  /* Connect SSE after initial load to avoid double fetch on first onopen */
+  connectSSE();
+});
+</script>
+</body>
+</html>

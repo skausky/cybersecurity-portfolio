@@ -1,0 +1,1 @@
+fix-alfa-5ghz.sh

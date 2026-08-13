@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f14" />
+  <title>CamJam v2</title>
+  <link rel="stylesheet" href="/static/app.css" />
+</head>
+<body class="app">
+
+  <!-- ── Sidebar ─────────────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand">CAM<span class="brand-accent">JAM</span><span class="brand-v">v2</span></div>
+      <button class="btn btn-icon sidebar-close" id="btnSidebarClose">✕</button>
+    </div>
+    <div class="sidebar-search">
+      <input id="globalSearch" class="cmd-search" placeholder="Search APs…" autocomplete="off" />
+    </div>
+    <div id="apList" class="ap-list"></div>
+    <div class="sidebar-footer">
+      <span id="connBadge" class="badge off">offline</span>
+      <span id="ifaceChip" class="chip muted-chip">no iface</span>
+    </div>
+  </aside>
+
+  <!-- ── Main column ─────────────────────────────────────────── -->
+  <div class="main-col" id="mainCol">
+    <header class="topbar">
+      <button class="btn btn-icon hamburger" id="btnHamburger">☰</button>
+      <div class="topbar-pills">
+        <span id="scanPill" class="status-pill idle">idle</span>
+        <span id="deauthPill" class="status-pill deauth-on" style="display:none">deauth active</span>
+        <span id="watchPill" class="status-pill watching" style="display:none">watching</span>
+      </div>
+      <div class="topbar-right">
+        <span id="rogueBadge" class="rogue-badge" style="display:none" title="Rogue AP alerts detected">⚠ rogues</span>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="ops">Ops</button>
+      <button class="tab" data-tab="devices">Devices</button>
+      <button class="tab" data-tab="presence">Presence</button>
+      <button class="tab" data-tab="intel">Intel</button>
+      <button class="tab" data-tab="live">Live</button>
+    </nav>
+
+    <main class="panels">
+
+      <!-- OPS ──────────────────────────────────────────────── -->
+      <section id="panel-ops" class="panel active">
+        <div class="ops-grid">
+
+          <div class="card setup-card">
+            <div class="card-label">INTERFACE</div>
+            <div class="row-gap">
+              <select id="ifaceSelect" class="select grow"></select>
+              <button id="btnRefreshIface" class="btn btn-icon" title="Refresh interfaces">↺</button>
+              <button id="btnIface" class="btn accent">Monitor</button>
+            </div>
+            <div id="ifaceStatus" class="status-text"></div>
+            <div id="ifaceWarn" class="iface-warn" style="display:none"></div>
+
+            <div class="card-label mt">BAND</div>
+            <div class="band-chips" id="bandChips">
+              <button class="band-chip active" data-band="abg">2.4 + 5 GHz</button>
+              <button class="band-chip" data-band="bg">2.4 GHz only</button>
+              <button class="band-chip" data-band="a">5 GHz only</button>
+            </div>
+
+            <div class="scan-row">
+              <button id="btnScan" class="btn accent grow">Scan Networks</button>
+              <button id="btnCancelScan" class="btn" style="display:none">Cancel</button>
+            </div>
+            <div id="scanProgressWrap" style="display:none">
+              <div class="progress-bar">
+                <div id="scanProgressFill" class="progress-fill" style="width:0%"></div>
+              </div>
+              <div id="scanProgressLabel" class="progress-label">Starting…</div>
+            </div>
+          </div>
+
+          <div class="card targets-card">
+            <div class="card-label">TARGETS (<span id="targetCount">0</span>)</div>
+            <div id="targetChips" class="target-chips"></div>
+            <div id="noTargetsHint" class="hint-text">Select APs from the sidebar or network list</div>
+
+            <div class="card-label mt">DEAUTH</div>
+            <div class="deauth-opts">
+              <div class="opt-row">
+                <span class="opt-label">Packets / burst</span>
+                <input id="pktCount" type="number" min="1" max="64" value="3" class="input-sm" />
+              </div>
+              <label class="opt-row check-row">
+                <input type="checkbox" id="loopDeauth" />
+                <span class="opt-label">Loop until stopped</span>
+              </label>
+            </div>
+            <div class="btn-row">
+              <button id="btnDeauth" class="btn danger grow">Start Deauth</button>
+              <button id="btnStop" class="btn grow">Stop</button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- DEVICES ──────────────────────────────────────────── -->
+      <section id="panel-devices" class="panel">
+        <div class="panel-toolbar">
+          <input id="deviceFilter" class="cmd-search grow" placeholder="Filter by MAC, vendor, label…" />
+          <select id="deviceTypeFilter" class="select select-sm">
+            <option value="">All types</option>
+            <option value="apple_device">🍎 Apple</option>
+            <option value="android_phone">📱 Android</option>
+            <option value="laptop">💻 Laptop</option>
+            <option value="smart_home">🏠 Smart Home</option>
+            <option value="network_gear">🌐 Network</option>
+            <option value="camera">📷 Camera</option>
+            <option value="iot_esp">🔌 IoT</option>
+            <option value="unknown">❓ Unknown</option>
+          </select>
+          <label class="check-label">
+            <input type="checkbox" id="watchedOnly" />
+            Watched
+          </label>
+          <button id="btnRefreshDevices" class="btn btn-sm">Refresh</button>
+        </div>
+        <div id="deviceGrid" class="device-grid"></div>
+      </section>
+
+      <!-- PRESENCE ──────────────────────────────────────────── -->
+      <section id="panel-presence" class="panel">
+        <div class="presence-topbar">
+          <div>
+            <div class="section-title">Presence Monitor</div>
+            <div class="section-sub">Who's home, who's away — tracked automatically.</div>
+          </div>
+          <div class="watch-controls">
+            <div class="opt-row">
+              <span class="opt-label">Every</span>
+              <input id="watchInterval" type="number" min="30" max="600" value="120" class="input-sm" />
+              <span class="opt-label">sec</span>
+            </div>
+            <button id="btnStartWatch" class="btn accent">Start Watch</button>
+            <button id="btnStopWatch" class="btn" style="display:none">Stop Watch</button>
+          </div>
+        </div>
+
+        <div id="homeGrid" class="home-grid"></div>
+
+        <div class="card">
+          <div class="card-label">24h TIMELINE</div>
+          <div id="timelineGrid" class="timeline-grid"></div>
+          <div id="noWatchedHint" class="hint-text">
+            No watched devices yet — label a device in the Devices tab and toggle Watch.
+          </div>
+        </div>
+      </section>
+
+      <!-- INTEL ────────────────────────────────────────────── -->
+      <section id="panel-intel" class="panel">
+
+        <div id="rogueSection" class="rogue-section" style="display:none">
+          <div class="card-label warn-label">⚠ ROGUE AP ALERTS</div>
+          <div id="rogueList"></div>
+        </div>
+
+        <!-- STATS OVERVIEW ─────────────────────────────────── -->
+        <div class="stats-kpi-row" id="statsKpi">
+          <div class="kpi-card" id="kpiTotal">
+            <div class="kpi-value" id="kpiTotalVal">–</div>
+            <div class="kpi-label">Deauth Attempts</div>
+          </div>
+          <div class="kpi-card success" id="kpiSuccess">
+            <div class="kpi-value" id="kpiSuccessVal">–</div>
+            <div class="kpi-label">Success Rate</div>
+          </div>
+          <div class="kpi-card" id="kpiEvicted">
+            <div class="kpi-value" id="kpiEvictedVal">–</div>
+            <div class="kpi-label">Avg Clients Evicted</div>
+          </div>
+          <div class="kpi-card" id="kpiLabeled">
+            <div class="kpi-value" id="kpiLabeledVal">–</div>
+            <div class="kpi-label">Labeled Devices</div>
+          </div>
+          <div class="kpi-card" id="kpiWatched">
+            <div class="kpi-value" id="kpiWatchedVal">–</div>
+            <div class="kpi-label">Watched Devices</div>
+          </div>
+        </div>
+
+        <div class="stats-detail-row">
+          <!-- Confidence breakdown -->
+          <div class="card stats-conf-card">
+            <div class="card-label">DEAUTH CONFIDENCE BREAKDOWN</div>
+            <div class="conf-bars" id="confBars">
+              <div class="conf-row">
+                <span class="conf-name good">High</span>
+                <div class="conf-bar-wrap"><div class="conf-bar good" id="confHigh"></div></div>
+                <span class="conf-count" id="confHighN">0</span>
+              </div>
+              <div class="conf-row">
+                <span class="conf-name warn">Medium</span>
+                <div class="conf-bar-wrap"><div class="conf-bar warn" id="confMed"></div></div>
+                <span class="conf-count" id="confMedN">0</span>
+              </div>
+              <div class="conf-row">
+                <span class="conf-name bad">Low</span>
+                <div class="conf-bar-wrap"><div class="conf-bar bad" id="confLow"></div></div>
+                <span class="conf-count" id="confLowN">0</span>
+              </div>
+              <div class="conf-row">
+                <span class="conf-name muted">Inconclusive</span>
+                <div class="conf-bar-wrap"><div class="conf-bar muted" id="confInc"></div></div>
+                <span class="conf-count" id="confIncN">0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- By mode breakdown -->
+          <div class="card stats-mode-card">
+            <div class="card-label">BY DEAUTH MODE</div>
+            <table class="stats-table" id="modeTable">
+              <thead><tr><th>Mode</th><th>Attempts</th><th>Success%</th></tr></thead>
+              <tbody id="modeBody"></tbody>
+            </table>
+          </div>
+
+          <!-- Top targets -->
+          <div class="card stats-targets-card">
+            <div class="card-label">TOP TARGETED APs</div>
+            <table class="stats-table" id="topTargetsTable">
+              <thead><tr><th>BSSID / SSID</th><th>Hits</th><th>Succ</th></tr></thead>
+              <tbody id="topTargetsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Recent deauth events -->
+        <div class="card">
+          <div class="panel-toolbar">
+            <span class="card-label">RECENT DEAUTH EVENTS</span>
+            <button class="btn btn-sm" id="btnRefreshStats">Refresh</button>
+          </div>
+          <div id="recentEvents" class="recent-events-list"></div>
+        </div>
+
+        <div class="intel-grid">
+          <div class="card">
+            <div class="card-label">CHANNEL UTILIZATION</div>
+            <div id="channelHeatmap" class="channel-heatmap"></div>
+          </div>
+          <div class="card">
+            <div class="card-label">PROBE REQUEST CLOUD</div>
+            <div id="probeCloud" class="probe-cloud"></div>
+            <button id="btnRefreshProbes" class="btn btn-sm mt">Load Probes</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">SCAN SESSION HISTORY</div>
+          <div id="sessionList" class="session-list"></div>
+          <button id="btnRefreshSessions" class="btn btn-sm mt">Refresh</button>
+        </div>
+
+        <div class="card">
+          <div class="card-label">EXPORT DATA</div>
+          <div class="export-row">
+            <button class="btn btn-sm" id="exportAps">APs CSV</button>
+            <button class="btn btn-sm" id="exportClients">Clients CSV</button>
+            <button class="btn btn-sm" id="exportEvents">Events CSV</button>
+            <button class="btn btn-sm" id="exportJson">Full JSON</button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- LIVE ─────────────────────────────────────────────── -->
+      <section id="panel-live" class="panel">
+        <div class="panel-toolbar">
+          <span class="card-label">LIVE EVENT FEED</span>
+          <button id="btnClearLive" class="btn btn-sm">Clear</button>
+        </div>
+        <div id="liveFeed" class="feed"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- AP Detail Drawer ─────────────────────────────────────── -->
+  <div id="drawerOverlay" class="drawer-overlay"></div>
+  <div id="apDrawer" class="drawer" aria-hidden="true">
+    <div class="drawer-header">
+      <div>
+        <div id="drawerSsid" class="drawer-ssid">–</div>
+        <div id="drawerBssid" class="drawer-bssid mono">–</div>
+      </div>
+      <button id="btnCloseDrawer" class="btn btn-icon">✕</button>
+    </div>
+    <div id="drawerMeta" class="drawer-meta"></div>
+    <div class="card-label">SIGNAL HISTORY</div>
+    <svg id="drawerSparkline" class="sparkline" viewBox="0 0 300 60" preserveAspectRatio="none">
+      <polyline id="sparklineLine" fill="none" stroke="var(--accent)" stroke-width="2" points=""/>
+    </svg>
+    <div class="card-label">ASSOCIATED CLIENTS</div>
+    <div id="drawerClients" class="drawer-clients"></div>
+    <div class="drawer-footer">
+      <button id="drawerAddTarget" class="btn accent grow">Add to Targets</button>
+      <button id="drawerScanClients" class="btn grow">Scan Clients</button>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

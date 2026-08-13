@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+*.db
+camjam_v2/data/*.db
+camjam_v2/web/node_modules/
+camjam_v2/web/dist/
+.env
+.DS_Store
