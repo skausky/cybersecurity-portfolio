@@ -1,7 +1,7 @@
 # Education
 
 ## B.S. in Cybersecurity
-**Graduated:** 2025
+**Graduated:** 2026
 
 ### Relevant Coursework
 - Network Security & Defense
