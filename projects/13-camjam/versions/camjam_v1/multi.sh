@@ -14,7 +14,7 @@ require_cmd() {
 }
 
 INTERFACE="<YOUR_ADAPTER>"
-ESSID="YOUR_NETWORK_NAME"
+ESSID="YOUR_NETWORK_NAME"  # SSID of the AP you own/have permission to test
 DEAUTH_COUNT=3
 SLEEP=5
 CAPTURE_FILE="/tmp/deauth_capture"
