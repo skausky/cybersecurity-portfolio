@@ -1,16 +1,22 @@
 <div align="center">
 
-# Sean Spakausky — Cybersecurity Portfolio
+# Cybersecurity Portfolio
 
-**B.S. Cybersecurity · Illinois State University, 2025**
+**B.S. Cybersecurity · 2025**
 
 Blue Team · SOC · Detection Engineering · Incident Response
+
+![Last Commit](https://img.shields.io/github/last-commit/skausky/skausky)
+![Security+](https://img.shields.io/badge/CompTIA-Security%2B%20In%20Progress-red)
+![Open to Work](https://img.shields.io/badge/Status-Open%20to%20Entry--Level%20SOC-blue)
 
 </div>
 
 ---
 
-I learn by building. This portfolio is a record of hands-on lab work — detection rules with real ATT&CK mappings, IR playbooks built from simulated incidents, offensive research done specifically to understand what defenders see on the other side, and a physical home monitoring lab generating real telemetry. Everything here I built and tested myself.
+I learn by building. This portfolio is a record of hands-on security work — detection rules mapped to real ATT&CK techniques, incident response playbooks built from simulated incidents, and offensive research done to understand what defenders actually see. Alongside that sits a home lab of custom sensors and automation generating live telemetry I use to test against. Everything here was built, broken, and fixed by me.
+
+> **Start here:** [Home SOC Lab](./projects/01-home-soc-lab/) — Wazuh + ELK, Sysmon, Atomic Red Team simulation, full detection loop end-to-end. Or if you're looking at the offensive side: [AMSI & Defender Bypass](./projects/06-amsi-defender-bypass/) — capstone project with full detection analysis.
 
 ---
 
@@ -39,8 +45,8 @@ I learn by building. This portfolio is a record of hands-on lab work — detecti
 | [Wireless Attack Lab](./projects/08-wireless-attack-lab/) | 802.11 deauth lab: passive recon, client enumeration, frame injection, WIDS detection |
 | [Cross-Platform Loader](./projects/09-cross-platform-loader/) | Linux → Windows C# payload staging and delivery detection |
 | [Privilege Escalation Research](./projects/11-privesc-research/) | Linux and Windows privesc methodology with ATT&CK mapping and detection opportunities |
-| [CamJam — Deauth & Camera Targeting](https://github.com/skausky/camjam) | Multi-BSSID deauth tool with OUI-based camera fingerprinting; private MAC address lab |
-| [RTSP Camera Scanner](https://github.com/skausky/rtsp-camera-scanner) | Network scanner for exposed IP cameras; CVE-2017-7921, Dahua auth bypass, default creds |
+| [CamJam — Deauth & Camera Targeting](https://github.com/skausky/camjam) ↗ | Multi-BSSID deauth tool with OUI-based camera fingerprinting; private MAC address lab |
+| [RTSP Camera Scanner](https://github.com/skausky/rtsp-camera-scanner) ↗ | Network scanner for exposed IP cameras; CVE-2017-7921, Dahua auth bypass, default creds |
 
 ### Writeups
 
@@ -69,7 +75,7 @@ I learn by building. This portfolio is a record of hands-on lab work — detecti
 
 ## Education & Certifications
 
-**B.S. Cybersecurity** — Illinois State University, 2025 · [details](./docs/education.md)
+**B.S. Cybersecurity** — 2025 · [details](./docs/education.md)
 
 **CompTIA Security+** — in progress · [certifications](./docs/certifications.md)
 
@@ -77,6 +83,6 @@ I learn by building. This portfolio is a record of hands-on lab work — detecti
 
 <div align="center">
 
-*Continuously updated · Chicago suburbs · Open to entry-level SOC and security analyst roles*
+*Actively expanding · Open to entry-level SOC and security analyst roles*
 
 </div>
