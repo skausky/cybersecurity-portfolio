@@ -1,10 +1,12 @@
 <div align="center">
 
-# Cybersecurity Portfolio
+# Sean — Cybersecurity Portfolio
 
-**B.S. Cybersecurity · 2025**
+**B.S. Cybersecurity · 2026**
 
 Blue Team · SOC · Detection Engineering · Incident Response
+
+📧 youremail@gmail.com · [LinkedIn](https://linkedin.com/in/yourhandle)
 
 ![Last Commit](https://img.shields.io/github/last-commit/skausky/skausky)
 ![Security+](https://img.shields.io/badge/CompTIA-Security%2B%20In%20Progress-red)
@@ -75,7 +77,7 @@ I learn by building. This portfolio is a record of hands-on security work — de
 
 ## Education & Certifications
 
-**B.S. Cybersecurity** — 2025 · [details](./docs/education.md)
+**B.S. Cybersecurity** — 2026 · [details](./docs/education.md)
 
 **CompTIA Security+** — in progress · [certifications](./docs/certifications.md)
 
@@ -83,6 +85,6 @@ I learn by building. This portfolio is a record of hands-on security work — de
 
 <div align="center">
 
-*Actively expanding · Open to entry-level SOC and security analyst roles*
+*Actively expanding · 2026 · Open to entry-level SOC and security analyst roles*
 
 </div>
