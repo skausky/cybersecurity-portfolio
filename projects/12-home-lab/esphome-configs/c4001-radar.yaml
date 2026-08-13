@@ -1,0 +1,651 @@
+# ─────────────────────────────────────────────────────────────
+# ESPHome Config: DFRobot SEN0609 / C4001 25m mmWave Radar
+# ALL features enabled • Standalone sensor • Home Assistant ready
+# ─────────────────────────────────────────────────────────────
+
+substitutions:
+  name: "beam"
+  friendly_name: "C4001 mmWave Radar"
+  room_prefix: ""  # e.g., "Living Room " - leave empty for no prefix
+
+  # Tuning defaults
+  default_min_range: "60"     # 0.6m in cm (sensor minimum is 0.6m per docs)
+  default_max_range: "1200"   # 12m in cm  (was "12" = 12cm — bug fixed)
+  default_trigger_range: "6"
+  default_sensitivity: "7"
+  default_trigger_sensitivity: "5"
+  default_on_latency: "0"
+  default_off_latency: "15"
+  default_threshold_factor: "7"  # Raised from 5 — filters ghost multipath returns
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  on_boot:
+    priority: -100
+    then:
+      - delay: 3s                   # Docs: wait 3s after power-on before UART ops
+      - uart.write: "sensorStop"
+      - delay: 1s
+      - uart.write: "sensorStart"
+      - delay: 2s
+      # Sync UI state from sensor flash on every boot
+      - uart.write: "getRange"
+      - delay: 1s
+      - uart.write: "getSensitivity"
+      - delay: 1s
+      - uart.write: "getLatency"
+      - delay: 1s
+      - uart.write: "getTrigRange"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+api:
+  encryption:
+    key: !secret api_key_c4001
+
+ota:
+  - platform: esphome
+    password: !secret ota_password_c4001
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Beam Fallback Hotspot"
+    password: !secret fallback_password_c4001
+
+logger:
+  level: WARN
+
+# ─────────────────────────────────────────────────────────────
+# UART Communication (9600 baud, SEN0609 protocol)
+# ─────────────────────────────────────────────────────────────
+uart:
+  id: uart_bus
+  tx_pin: GPIO17
+  rx_pin: GPIO16
+  baud_rate: 9600
+  debug:
+    direction: BOTH
+    dummy_receiver: true
+    after:
+      delimiter: "\n"
+    sequence:
+      - lambda: |-
+          UARTDebug::log_string(direction, bytes);
+          if (direction == UART_DIRECTION_RX) {
+            std::string data = "";
+            for (int i = 0; i < bytes.size(); i++) data += char(bytes[i]);
+
+            // Parse presence: $DFHPD,1,,,*
+            if (data.find("$DFHPD") == 0) {
+              size_t comma1 = data.find(',', 6);
+              if (comma1 != std::string::npos) {
+                std::string presence = data.substr(comma1 + 1, 1);
+                id(mmwave_raw).publish_state(presence == "1");
+              }
+            }
+
+            // Track last query for response parsing
+            static std::string last_cmd = "";
+            if (data.find("getRange") == 0) last_cmd = "getRange";
+            else if (data.find("getSensitivity") == 0) last_cmd = "getSensitivity";
+            else if (data.find("getLatency") == 0) last_cmd = "getLatency";
+            else if (data.find("getTrigRange") == 0) last_cmd = "getTrigRange";
+
+            // Parse responses: "Response min max"
+            if (data.find("Response ") == 0) {
+              std::string resp = data.substr(9);
+              if (last_cmd == "getRange") {
+                size_t sp = resp.find(' ');
+                if (sp != std::string::npos) {
+                  float mn = atof(resp.substr(0, sp).c_str());
+                  float mx = atof(resp.substr(sp+1).c_str());
+                  id(mmwave_min_distance).publish_state(mn * 100);
+                  id(mmwave_distance).publish_state(mx * 100);
+                }
+              }
+              else if (last_cmd == "getSensitivity") {
+                size_t sp = resp.find(' ');
+                if (sp != std::string::npos) {
+                  id(mmwave_sensitivity).publish_state(atof(resp.substr(0, sp).c_str()));
+                  id(mmwave_trigger_sensitivity).publish_state(atof(resp.substr(sp+1).c_str()));
+                }
+              }
+              else if (last_cmd == "getLatency") {
+                size_t sp = resp.find(' ');
+                if (sp != std::string::npos) {
+                  id(mmwave_on_latency).publish_state(atof(resp.substr(0, sp).c_str()));
+                  id(mmwave_off_latency).publish_state(atof(resp.substr(sp+1).c_str()));
+                }
+              }
+              else if (last_cmd == "getTrigRange") {
+                id(mmwave_trigger_distance).publish_state(atof(resp.c_str()));
+              }
+              last_cmd = "";
+            }
+
+            // Parse tracking data: $DFDMD,count,num,dist,speed,energy,,*
+            if (data.find("$DFDMD") == 0) {
+              static uint32_t last_upd = 0;
+              uint32_t now = millis();
+              uint32_t interval = 400;
+              std::string rate = id(mmwave_update_rate).state;
+              if (rate == "0.3s") interval = 300;
+              else if (rate == "0.5s") interval = 500;
+
+              std::vector<std::string> parts;
+              std::string cur = "";
+              for (char c : data) {
+                if (c == ',') { parts.push_back(cur); cur = ""; }
+                else cur += c;
+              }
+              parts.push_back(cur);
+
+              if (parts.size() >= 6) {
+                int count = (parts[1].length() > 0 && parts[1] != " ") ? atoi(parts[1].c_str()) : 0;
+                if (id(mmwave_mode).state == "Distance and Speed") {
+                  id(mmwave_raw).publish_state(count > 0);
+                }
+                if (now - last_upd >= interval) {
+                  last_upd = now;
+                  id(mmwave_target_count).publish_state(count);
+                  id(mmwave_target_distance).publish_state(
+                    (parts[3].length() > 0 && parts[3] != " ") ? atof(parts[3].c_str()) : NAN);
+                  id(mmwave_target_speed).publish_state(
+                    (parts[4].length() > 0 && parts[4] != " ") ? atof(parts[4].c_str()) : NAN);
+                  if (parts[5].length() > 0 && parts[5] != " " && parts[5].find('*') == std::string::npos) {
+                    id(mmwave_target_energy).publish_state(atoi(parts[5].c_str()));
+                  } else {
+                    id(mmwave_target_energy).publish_state(NAN);
+                  }
+                }
+              }
+            }
+          }
+
+# ─────────────────────────────────────────────────────────────
+# BINARY SENSORS
+# ─────────────────────────────────────────────────────────────
+binary_sensor:
+  - platform: template
+    name: "${room_prefix}mmWave Raw"
+    id: mmwave_raw
+    device_class: occupancy
+    entity_category: diagnostic
+
+  - platform: template
+    name: "${room_prefix}Occupancy"
+    id: occupancy
+    device_class: occupancy
+    # BUG FIXED: removed hardcoded delayed_off: 15s filter — sensor hardware
+    # handles hold time via setLatency off_latency. Double-applying it caused
+    # occupancy to stay ON for up to 30s after the sensor already cleared.
+    lambda: |-
+      return id(mmwave_raw).state;
+
+# ─────────────────────────────────────────────────────────────
+# SENSORS
+# ─────────────────────────────────────────────────────────────
+sensor:
+  - platform: template
+    name: "${room_prefix}mmWave Target Distance"
+    id: mmwave_target_distance
+    unit_of_measurement: "m"
+    accuracy_decimals: 2
+    device_class: distance
+    state_class: measurement
+    entity_category: diagnostic
+
+  - platform: template
+    name: "${room_prefix}mmWave Target Speed"
+    id: mmwave_target_speed
+    unit_of_measurement: "m/s"
+    accuracy_decimals: 2
+    state_class: measurement
+    entity_category: diagnostic
+
+  - platform: template
+    name: "${room_prefix}mmWave Target Energy"
+    id: mmwave_target_energy
+    accuracy_decimals: 0
+    state_class: measurement
+    entity_category: diagnostic
+
+  - platform: template
+    name: "${room_prefix}mmWave Target Count"
+    id: mmwave_target_count
+    accuracy_decimals: 0
+    state_class: measurement
+    entity_category: diagnostic
+
+# ─────────────────────────────────────────────────────────────
+# SWITCHES
+# ─────────────────────────────────────────────────────────────
+switch:
+  - platform: template
+    name: "${room_prefix}mmWave Power"
+    id: mmwave_sensor
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    turn_on_action:
+      - uart.write: "sensorStart"
+      - delay: 1s
+    turn_off_action:
+      - uart.write: "sensorStop"
+      - delay: 1s
+
+  - platform: template
+    name: "${room_prefix}mmWave LED"
+    id: mmwave_led
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    turn_on_action:
+      - switch.turn_off: mmwave_sensor
+      - delay: 1s
+      - uart.write: "setLedMode 1 0"
+      - delay: 1s
+      - uart.write: "saveConfig"
+      - delay: 3s
+      - switch.turn_on: mmwave_sensor
+    turn_off_action:
+      - switch.turn_off: mmwave_sensor
+      - delay: 1s
+      - uart.write: "setLedMode 1 1"
+      - delay: 1s
+      - uart.write: "saveConfig"
+      - delay: 3s
+      - switch.turn_on: mmwave_sensor
+
+  - platform: template
+    name: "${room_prefix}UART Presence Output"
+    id: uart_presence_output
+    entity_category: config
+    optimistic: true
+    turn_on_action:
+      - switch.turn_off: mmwave_sensor
+      - delay: 1s
+      - uart.write: "setUartOutput 1 1"
+      - delay: 1s
+      - uart.write: "saveConfig"
+      - delay: 3s
+      - switch.turn_on: mmwave_sensor
+    turn_off_action:
+      - switch.turn_off: mmwave_sensor
+      - delay: 1s
+      - uart.write: "setUartOutput 1 0"
+      - delay: 1s
+      - uart.write: "saveConfig"
+      - delay: 3s
+      - switch.turn_on: mmwave_sensor
+
+  - platform: template
+    name: "${room_prefix}UART Target Output"
+    id: uart_target_output
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF  # BUG FIXED: was missing, causing state desync after reboot
+    turn_on_action:
+      - switch.turn_off: mmwave_sensor
+      - delay: 1s
+      - uart.write: "setUartOutput 2 1 1 1"
+      - delay: 1s
+      - uart.write: "saveConfig"
+      - delay: 3s
+      - switch.turn_on: mmwave_sensor
+    turn_off_action:
+      - switch.turn_off: mmwave_sensor
+      - delay: 1s
+      - uart.write: "setUartOutput 2 0"
+      - delay: 1s
+      - uart.write: "saveConfig"
+      - delay: 3s
+      - switch.turn_on: mmwave_sensor
+
+  - platform: template
+    name: "${room_prefix}Micro-motion Detection"
+    id: micro_motion_detection
+    entity_category: config
+    icon: mdi:motion-sensor
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - if:
+          condition:
+            lambda: 'return id(mmwave_mode).state == "Distance and Speed";'
+          then:
+            - switch.turn_off: mmwave_sensor
+            - delay: 1s
+            - uart.write: "setMicroMotion 1"
+            - delay: 1s
+            - uart.write: "saveConfig"
+            - delay: 1s
+            - switch.turn_on: mmwave_sensor
+    turn_off_action:
+      - if:
+          condition:
+            lambda: 'return id(mmwave_mode).state == "Distance and Speed";'
+          then:
+            - switch.turn_off: mmwave_sensor
+            - delay: 1s
+            - uart.write: "setMicroMotion 0"
+            - delay: 1s
+            - uart.write: "saveConfig"
+            - delay: 1s
+            - switch.turn_on: mmwave_sensor
+
+# ─────────────────────────────────────────────────────────────
+# SELECTS
+# ─────────────────────────────────────────────────────────────
+select:
+  - platform: template
+    name: "${room_prefix}mmWave Mode"
+    id: mmwave_mode
+    entity_category: config
+    icon: mdi:radar
+    optimistic: true
+    options:
+      - "Presence Detection"
+      - "Distance and Speed"
+    initial_option: "Presence Detection"
+    restore_value: true
+    set_action:
+      - switch.turn_off: mmwave_sensor
+      - delay: 1s
+      - if:
+          condition:
+            lambda: 'return x == "Distance and Speed";'
+          then:
+            - uart.write: "setRunApp 1"
+            - delay: 1s
+            - uart.write: "saveConfig"
+            - delay: 1s
+            - switch.turn_on: mmwave_sensor
+            - delay: 2s
+            - switch.turn_on: uart_target_output
+          else:
+            - uart.write: "setRunApp 0"
+            - delay: 1s
+            - uart.write: "saveConfig"
+            - delay: 1s
+            - switch.turn_on: mmwave_sensor
+            - delay: 2s
+            - switch.turn_off: uart_target_output
+
+  - platform: template
+    name: "${room_prefix}Update Rate"
+    id: mmwave_update_rate
+    entity_category: config
+    icon: mdi:timer
+    optimistic: true
+    options:
+      - "0.3s"
+      - "0.4s"
+      - "0.5s"
+    initial_option: "0.5s"
+    restore_value: true
+
+# ─────────────────────────────────────────────────────────────
+# NUMBERS
+# ─────────────────────────────────────────────────────────────
+number:
+  - platform: template
+    name: "${room_prefix}mmWave Min Distance"
+    id: mmwave_min_distance
+    entity_category: config
+    min_value: 60
+    max_value: 2500
+    initial_value: ${default_min_range}
+    optimistic: true
+    step: 10
+    restore_value: true
+    unit_of_measurement: "cm"
+    mode: slider
+    set_action:
+      - switch.turn_off: mmwave_sensor
+      - delay: 1s
+      - uart.write: !lambda
+          float mn = id(mmwave_min_distance).state / 100.0f;
+          float mx = id(mmwave_distance).state / 100.0f;
+          char buf[64];
+          snprintf(buf, sizeof(buf), "setRange %.1f %.1f", mn, mx);
+          std::string cmd(buf);
+          return std::vector<unsigned char>(cmd.begin(), cmd.end());
+      - delay: 1s
+      - uart.write: "saveConfig"
+      - delay: 1s
+      - switch.turn_on: mmwave_sensor
+
+  - platform: template
+    name: "${room_prefix}mmWave Max Distance"
+    id: mmwave_distance
+    entity_category: config
+    min_value: 60
+    max_value: 2500
+    initial_value: ${default_max_range}
+    optimistic: true
+    step: 10
+    restore_value: true
+    unit_of_measurement: "cm"
+    mode: slider
+    set_action:
+      - switch.turn_off: mmwave_sensor
+      - delay: 1s
+      - uart.write: !lambda
+          float mn = id(mmwave_min_distance).state / 100.0f;
+          float mx = id(mmwave_distance).state / 100.0f;
+          char buf[64];
+          snprintf(buf, sizeof(buf), "setRange %.1f %.1f", mn, mx);
+          std::string cmd(buf);
+          return std::vector<unsigned char>(cmd.begin(), cmd.end());
+      - delay: 1s
+      - uart.write: "saveConfig"
+      - delay: 1s
+      - switch.turn_on: mmwave_sensor
+
+  - platform: template
+    name: "${room_prefix}mmWave Trigger Distance"
+    id: mmwave_trigger_distance
+    entity_category: config
+    icon: mdi:radar
+    min_value: 0
+    max_value: 25
+    initial_value: ${default_trigger_range}
+    optimistic: true
+    step: 0.1
+    restore_value: true
+    unit_of_measurement: "m"
+    mode: slider
+    set_action:
+      - if:
+          condition:
+            lambda: 'return id(mmwave_mode).state == "Presence Detection";'
+          then:
+            - switch.turn_off: mmwave_sensor
+            - delay: 1s
+            - uart.write: !lambda
+                std::string cmd = "setTrigRange " + to_string(x);
+                return std::vector<unsigned char>(cmd.begin(), cmd.end());
+            - delay: 1s
+            - uart.write: "saveConfig"
+            - delay: 1s
+            - switch.turn_on: mmwave_sensor
+
+  - platform: template
+    name: "${room_prefix}mmWave Sensitivity"
+    id: mmwave_sensitivity
+    entity_category: config
+    min_value: 0
+    max_value: 9
+    initial_value: ${default_sensitivity}
+    optimistic: true
+    step: 1
+    restore_value: true
+    set_action:
+      - if:
+          condition:
+            lambda: 'return id(mmwave_mode).state == "Presence Detection";'
+          then:
+            - switch.turn_off: mmwave_sensor
+            - delay: 1s
+            - uart.write: !lambda
+                std::string cmd = "setSensitivity " + to_string(id(mmwave_sensitivity).state) + " " + to_string(id(mmwave_trigger_sensitivity).state);
+                return std::vector<unsigned char>(cmd.begin(), cmd.end());
+            - delay: 1s
+            - uart.write: "saveConfig"
+            - delay: 1s
+            - switch.turn_on: mmwave_sensor
+
+  - platform: template
+    name: "${room_prefix}mmWave Trigger Sensitivity"
+    id: mmwave_trigger_sensitivity
+    entity_category: config
+    icon: mdi:target-variant
+    min_value: 0
+    max_value: 9
+    initial_value: ${default_trigger_sensitivity}
+    optimistic: true
+    step: 1
+    restore_value: true
+    set_action:
+      - if:
+          condition:
+            lambda: 'return id(mmwave_mode).state == "Presence Detection";'
+          then:
+            - switch.turn_off: mmwave_sensor
+            - delay: 1s
+            - uart.write: !lambda
+                std::string cmd = "setSensitivity " + to_string(id(mmwave_sensitivity).state) + " " + to_string(id(mmwave_trigger_sensitivity).state);
+                return std::vector<unsigned char>(cmd.begin(), cmd.end());
+            - delay: 1s
+            - uart.write: "saveConfig"
+            - delay: 1s
+            - switch.turn_on: mmwave_sensor
+
+  - platform: template
+    name: "${room_prefix}mmWave On Latency"
+    id: mmwave_on_latency
+    entity_category: config
+    min_value: 0
+    max_value: 100
+    initial_value: ${default_on_latency}
+    optimistic: true
+    step: 0.5
+    restore_value: true
+    unit_of_measurement: "s"
+    mode: slider
+    set_action:
+      - switch.turn_off: mmwave_sensor
+      - delay: 1s
+      - uart.write: !lambda
+          std::string cmd = "setLatency " + to_string(id(mmwave_on_latency).state) + " " + to_string(id(mmwave_off_latency).state);
+          return std::vector<unsigned char>(cmd.begin(), cmd.end());
+      - delay: 1s
+      - uart.write: "saveConfig"
+      - delay: 1s
+      - switch.turn_on: mmwave_sensor
+
+  - platform: template
+    name: "${room_prefix}mmWave Off Latency"
+    id: mmwave_off_latency
+    entity_category: config
+    min_value: 0.5
+    max_value: 1500
+    initial_value: ${default_off_latency}
+    optimistic: true
+    step: 1
+    restore_value: true
+    unit_of_measurement: "s"
+    mode: slider
+    set_action:
+      - switch.turn_off: mmwave_sensor
+      - delay: 1s
+      - uart.write: !lambda
+          std::string cmd = "setLatency " + to_string(id(mmwave_on_latency).state) + " " + to_string(id(mmwave_off_latency).state);
+          return std::vector<unsigned char>(cmd.begin(), cmd.end());
+      - delay: 1s
+      - uart.write: "saveConfig"
+      - delay: 1s
+      - switch.turn_on: mmwave_sensor
+
+  - platform: template
+    name: "${room_prefix}mmWave Threshold Factor"
+    id: mmwave_threshold_factor
+    entity_category: config
+    icon: mdi:tune-variant
+    min_value: 1
+    max_value: 20
+    initial_value: ${default_threshold_factor}
+    optimistic: true
+    step: 1
+    restore_value: true
+    set_action:
+      - if:
+          condition:
+            lambda: 'return id(mmwave_mode).state == "Distance and Speed";'
+          then:
+            - switch.turn_off: mmwave_sensor
+            - delay: 1s
+            - uart.write: !lambda
+                std::string cmd = "setThrFactor " + to_string((int)x);
+                return std::vector<unsigned char>(cmd.begin(), cmd.end());
+            - delay: 1s
+            - uart.write: "saveConfig"
+            - delay: 1s
+            - switch.turn_on: mmwave_sensor
+
+# ─────────────────────────────────────────────────────────────
+# BUTTONS
+# ─────────────────────────────────────────────────────────────
+button:
+  - platform: restart
+    name: "${room_prefix}Restart ESP"
+    entity_category: config
+
+  - platform: safe_mode
+    name: "${room_prefix}Safe Mode Boot"
+    entity_category: config
+
+  - platform: template
+    name: "${room_prefix}Restart mmWave Sensor"
+    id: restart_mmwave
+    entity_category: config
+    on_press:
+      - uart.write: "resetSystem"
+
+  - platform: template
+    name: "${room_prefix}Factory Reset mmWave"
+    id: factory_reset_mmwave
+    entity_category: config
+    icon: mdi:cog-counterclockwise
+    on_press:
+      - switch.turn_off: mmwave_sensor
+      - delay: 2s
+      - uart.write: "resetCfg"
+      - delay: 3s
+      - uart.write: "setRunApp 0"
+      - delay: 2s
+      - uart.write: "saveConfig"
+      - delay: 3s
+      - switch.turn_on: mmwave_sensor
+      - delay: 3s
+      - uart.write: "getRange"
+      - delay: 2s
+      - uart.write: "getSensitivity"
+      - delay: 2s
+      - uart.write: "getLatency"
+      - delay: 2s
+      - uart.write: "getTrigRange"
+      - delay: 2s
+      - lambda: |-
+          id(mmwave_mode).publish_state("Presence Detection");
+          id(micro_motion_detection).publish_state(false);
+          id(mmwave_threshold_factor).publish_state(7.0);
+          id(uart_target_output).publish_state(false);
+          id(mmwave_led).publish_state(true);

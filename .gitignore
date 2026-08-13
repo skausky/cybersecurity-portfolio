@@ -6,7 +6,18 @@
 *.pfx
 credentials.json
 secrets.yml
+secrets.yaml
 *_secret*
+
+# Loose ESPHome yaml files dropped in projects root (clean versions in 12-home-lab/esphome-configs/)
+projects/erm.yaml
+projects/beam.yaml
+projects/ld2451.yaml
+projects/ld2451-and-c4001.yaml
+
+# Old folder names (content moved to 13-camjam and 14-rtsp-camera-scanner)
+projects/camjam*/
+projects/camsploit*/
 
 # --- Lab artifacts & captures (often large / sensitive) ---
 *.pcap

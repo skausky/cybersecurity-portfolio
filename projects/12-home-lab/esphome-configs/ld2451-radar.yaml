@@ -1,0 +1,727 @@
+esphome:
+  name: ld2451
+  friendly_name: LD2451 Radar
+  on_boot:
+    priority: -100   # run after Wi-Fi / API are up
+    then:
+      - script.execute: init_radar
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+  baud_rate: 0
+
+api:
+  encryption:
+    key: !secret api_key_ld2451
+
+ota:
+  - platform: esphome
+    password: !secret ota_password_ld2451
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Ld2451 Fallback Hotspot"
+    password: !secret fallback_password_ld2451
+
+captive_portal:
+
+output:
+  - platform: gpio
+    pin: GPIO26
+    id: ir_led
+
+uart:
+  id: uart_ld2451
+  tx_pin: GPIO17
+  rx_pin: GPIO16
+  baud_rate: 115200
+  parity: NONE
+  stop_bits: 1
+  data_bits: 8
+  rx_buffer_size: 512
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO27
+      mode: INPUT
+    name: "LD2451 Presence (OT1)"
+    id: ld2451_presence_gpio
+    device_class: motion
+    filters:
+      - delayed_on: 100ms
+      - delayed_off: 2000ms
+
+  - platform: template
+    name: "LD2451 Alarm: Approaching"
+    id: ld2451_alarm
+    device_class: motion
+    on_press:
+      then:
+        - output.turn_on: ir_led
+        - delay: 100ms
+        - output.turn_off: ir_led
+
+  - platform: template
+    name: "LD2451 T1 Approaching"
+    id: ld2451_t1_approaching
+    device_class: motion
+
+  - platform: template
+    name: "LD2451 T2 Approaching"
+    id: ld2451_t2_approaching
+    device_class: motion
+
+  - platform: template
+    name: "LD2451 T3 Approaching"
+    id: ld2451_t3_approaching
+    device_class: motion
+
+sensor:
+  - platform: template
+    name: "LD2451 Target Count"
+    id: ld2451_target_count
+    unit_of_measurement: ""
+    accuracy_decimals: 0
+    icon: mdi:account-multiple
+
+  - platform: template
+    name: "LD2451 T1 Distance"
+    id: ld2451_t1_distance
+    unit_of_measurement: "m"
+    accuracy_decimals: 0
+    device_class: distance
+    icon: mdi:radar
+
+  - platform: template
+    name: "LD2451 T1 Speed"
+    id: ld2451_t1_speed
+    unit_of_measurement: "km/h"
+    accuracy_decimals: 0
+    icon: mdi:speedometer
+
+  - platform: template
+    name: "LD2451 T1 Angle"
+    id: ld2451_t1_angle
+    unit_of_measurement: "°"
+    accuracy_decimals: 0
+    icon: mdi:angle-acute
+
+  - platform: template
+    name: "LD2451 T1 SNR"
+    id: ld2451_t1_snr
+    unit_of_measurement: ""
+    accuracy_decimals: 0
+    icon: mdi:signal
+
+  - platform: template
+    name: "LD2451 T2 Distance"
+    id: ld2451_t2_distance
+    unit_of_measurement: "m"
+    accuracy_decimals: 0
+    device_class: distance
+    icon: mdi:radar
+
+  - platform: template
+    name: "LD2451 T2 Speed"
+    id: ld2451_t2_speed
+    unit_of_measurement: "km/h"
+    accuracy_decimals: 0
+    icon: mdi:speedometer
+
+  - platform: template
+    name: "LD2451 T2 Angle"
+    id: ld2451_t2_angle
+    unit_of_measurement: "°"
+    accuracy_decimals: 0
+    icon: mdi:angle-acute
+
+  - platform: template
+    name: "LD2451 T2 SNR"
+    id: ld2451_t2_snr
+    unit_of_measurement: ""
+    accuracy_decimals: 0
+    icon: mdi:signal
+
+  - platform: template
+    name: "LD2451 T3 Distance"
+    id: ld2451_t3_distance
+    unit_of_measurement: "m"
+    accuracy_decimals: 0
+    device_class: distance
+    icon: mdi:radar
+
+  - platform: template
+    name: "LD2451 T3 Speed"
+    id: ld2451_t3_speed
+    unit_of_measurement: "km/h"
+    accuracy_decimals: 0
+    icon: mdi:speedometer
+
+  - platform: template
+    name: "LD2451 T3 Angle"
+    id: ld2451_t3_angle
+    unit_of_measurement: "°"
+    accuracy_decimals: 0
+    icon: mdi:angle-acute
+
+  - platform: template
+    name: "LD2451 T3 SNR"
+    id: ld2451_t3_snr
+    unit_of_measurement: ""
+    accuracy_decimals: 0
+    icon: mdi:signal
+
+  - platform: template
+    name: "LD2451 Config: Max Distance"
+    id: ld2451_cfg_max_distance
+    unit_of_measurement: "m"
+    accuracy_decimals: 0
+    icon: mdi:ruler
+    entity_category: diagnostic
+
+  - platform: template
+    name: "LD2451 Config: Min Speed"
+    id: ld2451_cfg_min_speed
+    unit_of_measurement: "km/h"
+    accuracy_decimals: 0
+    icon: mdi:speedometer-slow
+    entity_category: diagnostic
+
+  - platform: template
+    name: "LD2451 Config: Alarm Delay"
+    id: ld2451_cfg_delay
+    unit_of_measurement: "s"
+    accuracy_decimals: 0
+    icon: mdi:timer-outline
+    entity_category: diagnostic
+
+  - platform: template
+    name: "LD2451 Config: SNR Threshold"
+    id: ld2451_cfg_snr
+    unit_of_measurement: ""
+    accuracy_decimals: 0
+    icon: mdi:signal-variant
+    entity_category: diagnostic
+
+  - platform: template
+    name: "LD2451 Config: Trigger Count"
+    id: ld2451_cfg_trigger_count
+    unit_of_measurement: ""
+    accuracy_decimals: 0
+    icon: mdi:counter
+    entity_category: diagnostic
+
+text_sensor:
+  - platform: template
+    name: "LD2451 Firmware Version"
+    id: ld2451_firmware
+    icon: mdi:chip
+    entity_category: diagnostic
+
+  - platform: template
+    name: "LD2451 Config: Direction"
+    id: ld2451_cfg_direction
+    icon: mdi:directions
+    entity_category: diagnostic
+
+number:
+  - platform: template
+    name: "LD2451 Set Max Distance"
+    id: ld2451_set_max_distance
+    min_value: 10
+    max_value: 100
+    step: 1
+    unit_of_measurement: "m"
+    icon: mdi:ruler
+    optimistic: true
+    restore_value: true
+    initial_value: 100
+    on_value:
+      then:
+        - script.execute: write_config
+
+  - platform: template
+    name: "LD2451 Set Min Speed"
+    id: ld2451_set_min_speed
+    min_value: 0
+    max_value: 120
+    step: 1
+    unit_of_measurement: "km/h"
+    icon: mdi:speedometer-slow
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    on_value:
+      then:
+        - script.execute: write_config
+
+  - platform: template
+    name: "LD2451 Set Alarm Delay"
+    id: ld2451_set_delay
+    min_value: 1
+    max_value: 30
+    step: 1
+    unit_of_measurement: "s"
+    icon: mdi:timer-outline
+    optimistic: true
+    restore_value: true
+    initial_value: 5
+    on_value:
+      then:
+        - script.execute: write_config
+
+  - platform: template
+    name: "LD2451 Set SNR Threshold"
+    id: ld2451_set_snr
+    min_value: 1
+    max_value: 255
+    step: 1
+    unit_of_measurement: ""
+    icon: mdi:signal-variant
+    optimistic: true
+    restore_value: true
+    initial_value: 4
+    on_value:
+      then:
+        - script.execute: write_sensitivity
+
+  - platform: template
+    name: "LD2451 Set Trigger Count"
+    id: ld2451_set_trigger_count
+    min_value: 1
+    max_value: 10
+    step: 1
+    unit_of_measurement: ""
+    icon: mdi:counter
+    optimistic: true
+    restore_value: true
+    initial_value: 1
+    on_value:
+      then:
+        - script.execute: write_sensitivity
+
+  - platform: template
+    name: "LD2451 Clear Timeout"
+    id: ld2451_clear_timeout
+    min_value: 1
+    max_value: 30
+    step: 1
+    unit_of_measurement: "s"
+    icon: mdi:timer-sand
+    optimistic: true
+    restore_value: true
+    initial_value: 3
+    entity_category: config
+
+select:
+  - platform: template
+    name: "LD2451 Set Direction"
+    id: ld2451_set_direction
+    options:
+      - "Both"
+      - "Approaching only"
+      - "Receding only"
+    initial_option: "Both"
+    optimistic: true
+    restore_value: true
+    on_value:
+      then:
+        - script.execute: write_config
+
+button:
+  - platform: template
+    name: "LD2451 Read Config"
+    id: btn_read_config
+    icon: mdi:refresh
+    entity_category: config
+    on_press:
+      then:
+        - script.execute: read_config
+
+  - platform: template
+    name: "LD2451 Restart Sensor"
+    id: btn_restart_sensor
+    icon: mdi:restart
+    entity_category: config
+    on_press:
+      then:
+        - script.execute: restart_sensor
+
+  - platform: template
+    name: "LD2451 Factory Reset"
+    id: btn_factory_reset
+    icon: mdi:restore
+    entity_category: config
+    on_press:
+      then:
+        - script.execute: factory_reset
+
+globals:
+  - id: g_config_pending
+    type: bool
+    restore_value: false
+    initial_value: 'false'
+
+  - id: g_last_data_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: '0'
+
+  - id: g_targets_clear
+    type: bool
+    restore_value: false
+    initial_value: 'true'
+
+script:
+  - id: cmd_enable_config
+    then:
+      - lambda: |-
+          uint8_t cmd[] = {0xFD,0xFC,0xFB,0xFA, 0x04,0x00, 0xFF,0x00, 0x01,0x00, 0x04,0x03,0x02,0x01};
+          id(uart_ld2451).write_array(cmd, sizeof(cmd));
+      - delay: 100ms
+
+  - id: cmd_end_config
+    then:
+      - lambda: |-
+          uint8_t cmd[] = {0xFD,0xFC,0xFB,0xFA, 0x02,0x00, 0xFE,0x00, 0x04,0x03,0x02,0x01};
+          id(uart_ld2451).write_array(cmd, sizeof(cmd));
+      - delay: 100ms
+
+  - id: init_radar
+    then:
+      - script.execute: cmd_enable_config
+      - lambda: |-
+          uint8_t cmd[] = {0xFD,0xFC,0xFB,0xFA, 0x02,0x00, 0x00,0x00, 0x04,0x03,0x02,0x01};
+          id(uart_ld2451).write_array(cmd, sizeof(cmd));
+      - delay: 200ms
+      - lambda: |-
+          uint8_t cmd[] = {0xFD,0xFC,0xFB,0xFA, 0x02,0x00, 0x61,0x00, 0x04,0x03,0x02,0x01};
+          id(uart_ld2451).write_array(cmd, sizeof(cmd));
+      - delay: 200ms
+      - lambda: |-
+          uint8_t cmd[] = {0xFD,0xFC,0xFB,0xFA, 0x02,0x00, 0x65,0x00, 0x04,0x03,0x02,0x01};
+          id(uart_ld2451).write_array(cmd, sizeof(cmd));
+      - delay: 200ms
+      - script.execute: cmd_end_config
+
+  - id: read_config
+    then:
+      - script.execute: cmd_enable_config
+      - lambda: |-
+          uint8_t cmd[] = {0xFD,0xFC,0xFB,0xFA, 0x02,0x00, 0x61,0x00, 0x04,0x03,0x02,0x01};
+          id(uart_ld2451).write_array(cmd, sizeof(cmd));
+      - delay: 200ms
+      - lambda: |-
+          uint8_t cmd[] = {0xFD,0xFC,0xFB,0xFA, 0x02,0x00, 0x65,0x00, 0x04,0x03,0x02,0x01};
+          id(uart_ld2451).write_array(cmd, sizeof(cmd));
+      - delay: 200ms
+      - script.execute: cmd_end_config
+
+  - id: write_config
+    then:
+      - script.execute: cmd_enable_config
+      - lambda: |-
+          uint8_t max_dist  = (uint8_t) id(ld2451_set_max_distance).state;
+          uint8_t min_speed = (uint8_t) id(ld2451_set_min_speed).state;
+          uint8_t delay_s   = (uint8_t) id(ld2451_set_delay).state;
+
+          uint8_t dir = 0x02;
+          auto sel = id(ld2451_set_direction).state;
+          if (sel == "Approaching only") dir = 0x01;
+          else if (sel == "Receding only") dir = 0x00;
+
+          uint8_t cmd[] = {
+            0xFD,0xFC,0xFB,0xFA,
+            0x06,0x00,
+            0x60,0x00,
+            max_dist, dir, min_speed, delay_s,
+            0x04,0x03,0x02,0x01
+          };
+          id(uart_ld2451).write_array(cmd, sizeof(cmd));
+          ESP_LOGD("ld2451", "write_config: dist=%dm dir=0x%02X speed=%dkm/h delay=%ds",
+                   max_dist, dir, min_speed, delay_s);
+      - delay: 200ms
+      - script.execute: cmd_end_config
+
+  - id: write_sensitivity
+    then:
+      - script.execute: cmd_enable_config
+      - lambda: |-
+          uint8_t trigger = (uint8_t) id(ld2451_set_trigger_count).state;
+          uint8_t snr     = (uint8_t) id(ld2451_set_snr).state;
+          uint8_t cmd[] = {
+            0xFD,0xFC,0xFB,0xFA,
+            0x04,0x00,
+            0x64,0x00,
+            trigger, snr,
+            0x04,0x03,0x02,0x01
+          };
+          id(uart_ld2451).write_array(cmd, sizeof(cmd));
+          ESP_LOGD("ld2451", "write_sensitivity: trigger=%d snr=%d", trigger, snr);
+      - delay: 200ms
+      - script.execute: cmd_end_config
+
+  - id: restart_sensor
+    then:
+      - script.execute: cmd_enable_config
+      - lambda: |-
+          uint8_t cmd[] = {0xFD,0xFC,0xFB,0xFA, 0x02,0x00, 0xA3,0x00, 0x04,0x03,0x02,0x01};
+          id(uart_ld2451).write_array(cmd, sizeof(cmd));
+          ESP_LOGW("ld2451", "Restart command sent");
+      - delay: 3000ms
+
+  - id: factory_reset
+    then:
+      - script.execute: cmd_enable_config
+      - lambda: |-
+          uint8_t cmd[] = {0xFD,0xFC,0xFB,0xFA, 0x02,0x00, 0xA2,0x00, 0x04,0x03,0x02,0x01};
+          id(uart_ld2451).write_array(cmd, sizeof(cmd));
+          ESP_LOGW("ld2451", "Factory reset command sent — restart sensor to apply");
+      - delay: 200ms
+      - script.execute: cmd_end_config
+
+interval:
+  - interval: 30s
+    then:
+      - output.turn_on: ir_led
+      - delay: 100ms
+      - output.turn_off: ir_led
+
+  - interval: 250ms
+    then:
+      - lambda: |-
+          if (id(g_targets_clear)) return;
+          if (id(g_last_data_ms) == 0) return;
+
+          uint32_t timeout_ms = (uint32_t)(id(ld2451_clear_timeout).state * 1000.0f);
+          if ((millis() - id(g_last_data_ms)) < timeout_ms) return;
+
+          id(g_targets_clear) = true;
+
+          id(ld2451_target_count).publish_state(0.0f);
+          id(ld2451_alarm).publish_state(false);
+
+          id(ld2451_t1_distance).publish_state(NAN);
+          id(ld2451_t1_speed).publish_state(NAN);
+          id(ld2451_t1_angle).publish_state(NAN);
+          id(ld2451_t1_snr).publish_state(NAN);
+          id(ld2451_t1_approaching).publish_state(false);
+
+          id(ld2451_t2_distance).publish_state(NAN);
+          id(ld2451_t2_speed).publish_state(NAN);
+          id(ld2451_t2_angle).publish_state(NAN);
+          id(ld2451_t2_snr).publish_state(NAN);
+          id(ld2451_t2_approaching).publish_state(false);
+
+          id(ld2451_t3_distance).publish_state(NAN);
+          id(ld2451_t3_speed).publish_state(NAN);
+          id(ld2451_t3_angle).publish_state(NAN);
+          id(ld2451_t3_snr).publish_state(NAN);
+          id(ld2451_t3_approaching).publish_state(false);
+
+          ESP_LOGD("ld2451", "Watchdog: no data for %.0fs — targets cleared",
+                   id(ld2451_clear_timeout).state);
+
+  - interval: 50ms
+    then:
+      - lambda: |-
+          static std::vector<uint8_t> buf;
+          static bool first_data_frame_logged = false;
+
+          while (id(uart_ld2451).available()) {
+            uint8_t b;
+            id(uart_ld2451).read_byte(&b);
+            buf.push_back(b);
+            if (buf.size() > 768) buf.erase(buf.begin());
+          }
+
+          bool progress = true;
+          while (progress && buf.size() >= 4) {
+            progress = false;
+
+            if (buf[0] == 0xFD && buf[1] == 0xFC &&
+                buf[2] == 0xFB && buf[3] == 0xFA) {
+
+              if (buf.size() < 8) break;
+
+              uint16_t payload_len = (uint16_t)buf[4] | ((uint16_t)buf[5] << 8);
+              if (payload_len < 2 || payload_len > 64) {
+                buf.erase(buf.begin()); progress = true; continue;
+              }
+
+              uint16_t total_len = 4 + 2 + payload_len + 4;
+              if (buf.size() < total_len) break;
+
+              uint16_t foot = 4 + 2 + payload_len;
+              if (buf[foot]   != 0x04 || buf[foot+1] != 0x03 ||
+                  buf[foot+2] != 0x02 || buf[foot+3] != 0x01) {
+                buf.erase(buf.begin()); progress = true; continue;
+              }
+
+              uint8_t cmd_lo    = buf[6];
+              uint8_t cmd_hi    = buf[7];
+              uint16_t status   = 0;
+              if (payload_len >= 4) {
+                status = (uint16_t)buf[8] | ((uint16_t)buf[9] << 8);
+              }
+
+              if (status == 0x0000) {
+                if (cmd_lo == 0x00 && cmd_hi == 0x01 && payload_len >= 10) {
+                  uint16_t fw_type  = (uint16_t)buf[10] | ((uint16_t)buf[11] << 8);
+                  uint16_t major    = (uint16_t)buf[12] | ((uint16_t)buf[13] << 8);
+                  uint32_t minor    = (uint32_t)buf[14] | ((uint32_t)buf[15] << 8) |
+                                      ((uint32_t)buf[16] << 16) | ((uint32_t)buf[17] << 24);
+                  char fw_str[32];
+                  snprintf(fw_str, sizeof(fw_str), "0x%04X V%u.%06u", fw_type, major, minor);
+                  id(ld2451_firmware).publish_state(fw_str);
+                  ESP_LOGI("ld2451", "Firmware: %s", fw_str);
+                }
+
+                else if (cmd_lo == 0x61 && cmd_hi == 0x01 && payload_len >= 6) {
+                  uint8_t max_d = buf[10];
+                  uint8_t dir   = buf[11];
+                  uint8_t mspd  = buf[12];
+                  uint8_t dly   = buf[13];
+                  id(ld2451_cfg_max_distance).publish_state((float)max_d);
+                  id(ld2451_cfg_min_speed).publish_state((float)mspd);
+                  id(ld2451_cfg_delay).publish_state((float)dly);
+                  const char* dir_str = (dir == 0x01) ? "Approaching only"
+                                      : (dir == 0x00) ? "Receding only" : "Both";
+                  id(ld2451_cfg_direction).publish_state(dir_str);
+                  ESP_LOGI("ld2451", "Config read: max=%dm dir=%s spd=%dkm/h delay=%ds",
+                           max_d, dir_str, mspd, dly);
+                }
+
+                else if (cmd_lo == 0x65 && cmd_hi == 0x01 && payload_len >= 4) {
+                  uint8_t trig = buf[10];
+                  uint8_t snr  = buf[11];
+                  id(ld2451_cfg_trigger_count).publish_state((float)trig);
+                  id(ld2451_cfg_snr).publish_state((float)snr);
+                  ESP_LOGI("ld2451", "Sensitivity read: trigger_count=%d snr=%d", trig, snr);
+                }
+
+                else {
+                  ESP_LOGD("ld2451", "ACK cmd=0x%02X%02X status=OK", cmd_hi, cmd_lo);
+                }
+              } else {
+                ESP_LOGW("ld2451", "ACK cmd=0x%02X%02X status=FAIL (0x%04X)", cmd_hi, cmd_lo, status);
+              }
+
+              buf.erase(buf.begin(), buf.begin() + total_len);
+              progress = true;
+              continue;
+            }
+
+            if (buf[0] == 0xF4 && buf[1] == 0xF3 &&
+                buf[2] == 0xF2 && buf[3] == 0xF1) {
+
+              if (buf.size() < 12) break;
+
+              uint16_t payload_len = (uint16_t)buf[4] | ((uint16_t)buf[5] << 8);
+
+              if (payload_len < 2 || payload_len > 27) {
+                buf.erase(buf.begin()); progress = true; continue;
+              }
+
+              uint16_t total_len    = 4 + 2 + payload_len + 4;
+              uint16_t footer_start = 4 + 2 + payload_len;
+
+              if (buf.size() < total_len) break;
+
+              if (buf[footer_start]   != 0xF8 || buf[footer_start+1] != 0xF7 ||
+                  buf[footer_start+2] != 0xF6 || buf[footer_start+3] != 0xF5) {
+                buf.erase(buf.begin()); progress = true; continue;
+              }
+
+              if (!first_data_frame_logged) {
+                first_data_frame_logged = true;
+                char hex[128]; char *p = hex;
+                for (uint16_t i = 0; i < total_len && (p - hex) < 120; i++)
+                  p += sprintf(p, "%02X ", buf[i]);
+                *p = '\0';
+                ESP_LOGD("ld2451", "FIRST DATA FRAME (%u bytes): %s", (unsigned)total_len, hex);
+              }
+
+              id(g_last_data_ms) = millis();
+              id(g_targets_clear) = false;
+
+              uint8_t target_count = buf[6];
+              uint8_t alarm_byte   = buf[7];
+
+              id(ld2451_alarm).publish_state(alarm_byte == 0x01);
+              id(ld2451_target_count).publish_state((float)target_count);
+
+              id(ld2451_t1_distance).publish_state(NAN);
+              id(ld2451_t1_speed).publish_state(NAN);
+              id(ld2451_t1_angle).publish_state(NAN);
+              id(ld2451_t1_snr).publish_state(NAN);
+              id(ld2451_t1_approaching).publish_state(false);
+
+              id(ld2451_t2_distance).publish_state(NAN);
+              id(ld2451_t2_speed).publish_state(NAN);
+              id(ld2451_t2_angle).publish_state(NAN);
+              id(ld2451_t2_snr).publish_state(NAN);
+              id(ld2451_t2_approaching).publish_state(false);
+
+              id(ld2451_t3_distance).publish_state(NAN);
+              id(ld2451_t3_speed).publish_state(NAN);
+              id(ld2451_t3_angle).publish_state(NAN);
+              id(ld2451_t3_snr).publish_state(NAN);
+              id(ld2451_t3_approaching).publish_state(false);
+
+              for (int i = 0; i < (int)target_count && i < 3; i++) {
+                uint16_t off = 8 + (uint16_t)(i * 5);
+                if (off + 4 >= footer_start) break;
+
+                int     angle    = (int)buf[off]     - 0x80;
+                uint8_t distance = buf[off + 1];
+                uint8_t dir      = buf[off + 2];
+                uint8_t speed_kh = buf[off + 3];
+                uint8_t snr      = buf[off + 4];
+
+                ESP_LOGD("ld2451", "T%d: angle=%d° dist=%dm dir=%s speed=%dkm/h snr=%d",
+                         i + 1, angle, distance,
+                         dir == 0x01 ? "approach" : "recede",
+                         speed_kh, snr);
+
+                if (i == 0) {
+                  id(ld2451_t1_angle).publish_state((float)angle);
+                  id(ld2451_t1_distance).publish_state((float)distance);
+                  id(ld2451_t1_speed).publish_state((float)speed_kh);
+                  id(ld2451_t1_snr).publish_state((float)snr);
+                  id(ld2451_t1_approaching).publish_state(dir == 0x01);
+                } else if (i == 1) {
+                  id(ld2451_t2_angle).publish_state((float)angle);
+                  id(ld2451_t2_distance).publish_state((float)distance);
+                  id(ld2451_t2_speed).publish_state((float)speed_kh);
+                  id(ld2451_t2_snr).publish_state((float)snr);
+                  id(ld2451_t2_approaching).publish_state(dir == 0x01);
+                } else {
+                  id(ld2451_t3_angle).publish_state((float)angle);
+                  id(ld2451_t3_distance).publish_state((float)distance);
+                  id(ld2451_t3_speed).publish_state((float)speed_kh);
+                  id(ld2451_t3_snr).publish_state((float)snr);
+                  id(ld2451_t3_approaching).publish_state(dir == 0x01);
+                }
+              }
+
+              buf.erase(buf.begin(), buf.begin() + total_len);
+              progress = true;
+              continue;
+            }
+
+            buf.erase(buf.begin());
+            progress = true;
+          }
+
+switch:
+  - platform: output
+    name: "IR LED Manual"
+    output: ir_led

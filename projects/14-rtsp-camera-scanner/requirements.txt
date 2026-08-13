@@ -1,0 +1,4 @@
+rich>=13.7.0
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+pycryptodome>=3.18.0    # CVE-2017-7921 Hikvision config decryption (optional but recommended)
