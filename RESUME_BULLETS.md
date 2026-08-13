@@ -1,8 +1,5 @@
 # Resume Bullets — Cybersecurity Portfolio Projects
 
-Use these as a starting point. Tailor the metrics and scope to match the specific job posting. Lead with action verbs. Quantify where possible.
-
----
 
 ## Home SOC Lab (01)
 
