@@ -118,3 +118,13 @@
 7. **07-insider-threat-detector** — shows Python + SIEM architecture understanding
 8. **06-amsi-defender-bypass** — strong technical signal, needs disclaimer visibility
 9. **writeups/** (TryHackMe Blue, CVE research) — shows continuous learning
+
+---
+
+## ackwave — Wi-Fi Motion Sensing (15)
+
+- Built an ESP32-S3 motion sensor in C (ESP-IDF/FreeRTOS) that reads Channel State Information from 802.11 ACKs of a router it never joins, using "Polite Wi-Fi" frame injection at ~100 frames/s; no credentials or association required
+- Designed an on-device detector (band-pass filtering, dual time windows, auto-calibrated noise floor, hysteresis) and validated it overnight against a mmWave radar as ground truth
+- Diagnosed a periodic router artefact causing 20 false alarms per night and eliminated it with a per-packet shape filter, without losing real detections
+- Documented the defender's view: why WPA2/WPA3 don't prevent ACK-based sensing, and how a wireless IDS can detect high-rate null-data frames from unassociated MACs
+- Wrote 155 C unit checks plus Python pipeline tests verifying the firmware and a Python reference model agree on recorded data

@@ -49,6 +49,7 @@ I learn by building. This portfolio is a record of hands-on security work — de
 | [Privilege Escalation Research](./projects/11-privesc-research/) | Linux and Windows privesc methodology with ATT&CK mapping and detection opportunities |
 | [CamJam — Deauth & Camera Targeting](https://github.com/skausky/camjam) ↗ | Multi-BSSID deauth tool with OUI-based camera fingerprinting; private MAC address lab |
 | [RTSP Camera Scanner](https://github.com/skausky/rtsp-camera-scanner) ↗ | Network scanner for exposed IP cameras; CVE-2017-7921, Dahua auth bypass, default creds |
+| [ackwave — Wi-Fi Motion Sensing](./projects/15-ackwave/) | ESP32-S3 senses motion from a router it never joins (Polite Wi-Fi ACK CSI); C firmware, on-device detection, WIDS detection notes |
 
 ### Writeups
 
@@ -70,6 +71,8 @@ I learn by building. This portfolio is a record of hands-on security work — de
 **Platforms** — Windows / Active Directory · Linux · CIS Benchmarks · Group Policy
 
 **Scripting** — Python · PowerShell · Bash · C# · Regex
+
+**Embedded** — ESP32 · ESP-IDF · FreeRTOS · C · 802.11 frame injection · Wi-Fi CSI
 
 **Frameworks** — MITRE ATT&CK · NIST CSF · NIST 800-61 · Cyber Kill Chain
 

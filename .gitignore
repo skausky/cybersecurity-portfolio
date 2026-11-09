@@ -50,3 +50,9 @@ Thumbs.db
 
 # --- Claude / tooling ---
 .claude/
+
+# --- Local-only: third-party clones and session notes (never commit) ---
+resume_claude_chat.txt
+projects/13-camjam/rtl8812au/
+projects/13-camjam/versions/camjam_v1/rtl8812au/
+projects/14-rtsp-camera-scanner/research/
