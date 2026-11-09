@@ -52,7 +52,7 @@ USB serial → live GUI, recorder, history (optional; the board also works stand
 ## 🔬 Results and lessons
 
 - **Steady ~97 samples/s** from the router without being connected, independent of how busy the network is.
-- **Validated overnight against a mmWave radar** (DFRobot C4002) placed next to the board: motion periods found by ackwave lined up with the radar's movement reports, including small movements in bed.
+- **Validated overnight against a mmWave radar** (DFRobot C4002) placed next to the board: motion periods found by ackwave lined up with the radar's movement reports, including small movements of a person lying still.
 - **Found and filtered a router artefact.** The ISP gateway briefly switched to a very different channel shape every 20 min 2 s, which looked like motion. A per-packet shape check with a 5 s hold now ignores it: 20 false alarms per night went to 0, while real movement still passes.
 - **More links is not automatically better.** When the board also started poking a distant second access point, the main link's sample rate halved (97 → 43/s). This matches published research on multi-link Wi-Fi sensing ("dilution effect", arXiv 2602.10823) and shaped the design of an experimental multi-device mode: per-link detectors and quality gating instead of naive fusion.
 
