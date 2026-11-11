@@ -47,4 +47,4 @@ Notes I wrote while studying for SOC work. They're reference material, not labs 
 
 ## Education
 
-B.S. Cybersecurity, May 2026 ([coursework](./docs/education.md)). Studying for CompTIA Security+ ([certifications](./docs/certifications.md)).
+B.S. Cybersecurity, Illinois State University, May 2026 ([coursework](./docs/education.md)). Studying for CompTIA Security+ ([certifications](./docs/certifications.md)).

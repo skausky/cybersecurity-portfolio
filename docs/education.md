@@ -1,6 +1,6 @@
 # Education
 
-## B.S. in Cybersecurity
+## B.S. in Cybersecurity, Illinois State University
 **Graduated:** May 2026
 
 ### Relevant Coursework
