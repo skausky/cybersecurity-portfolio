@@ -125,6 +125,7 @@
 
 - Built an ESP32-S3 motion sensor in C (ESP-IDF/FreeRTOS) that reads Channel State Information from 802.11 ACKs of a router it never joins, using "Polite Wi-Fi" frame injection at ~100 frames/s; no credentials or association required
 - Designed an on-device detector (band-pass filtering, dual time windows, auto-calibrated noise floor, hysteresis) and validated it overnight against a mmWave radar as ground truth
-- Diagnosed a periodic router artefact causing 20 false alarms per night and eliminated it with a per-packet shape filter, without losing real detections
+- Diagnosed a periodic router background scan that looked like motion and filtered it with a gap-aware shape check (51 of 52 events overnight); cut remaining false alarms from 17.3 to 7.1 per hour with no lost detections by replaying a night against the radar
 - Documented the defender's view: why WPA2/WPA3 don't prevent ACK-based sensing, and how a wireless IDS can detect high-rate null-data frames from unassociated MACs
-- Wrote 155 C unit checks plus Python pipeline tests verifying the firmware and a Python reference model agree on recorded data
+- Built a localhost-only web dashboard reachable from a phone via SSH tunnel, with CSRF and DNS-rebinding protection on its control endpoint
+- Wrote 300+ C unit checks plus Python pipeline tests verifying the firmware and a Python reference model agree on recorded data
