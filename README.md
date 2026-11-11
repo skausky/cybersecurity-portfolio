@@ -13,6 +13,7 @@ Most of what I know I learned by building things and then working out how a defe
 | [CamJam](./projects/13-camjam/) | A Wi-Fi monitoring and deauthentication lab tool that picks out cameras by vendor, built so I'd know exactly what a deauth attack looks like before writing detections for it. [Code](https://github.com/skausky/camjam) |
 | [RTSP Camera Scanner](./projects/14-rtsp-camera-scanner/) | Finds IP cameras on a network and checks them for default logins, open streams and known CVEs (CVE-2017-7921, Dahua auth bypass). [Code](https://github.com/skausky/rtsp-camera-scanner) |
 | [Home monitoring lab](./projects/12-home-lab/) | Home Assistant on a Raspberry Pi with mmWave radar sensors on ESP32 boards, Frigate for cameras, MQTT and AdGuard DNS. The radar data is what I used to check ackwave. |
+| [RoadWatch](./projects/16-roadwatch/) | Three ESP32 boards in a car that passively pick out ALPR cameras and police equipment over Wi-Fi and Bluetooth. Drive-tested, with what the devices leak and how to fix it. [Code](https://github.com/skausky/roadwatch) |
 
 ## School and lab research
 
