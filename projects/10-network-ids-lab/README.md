@@ -1,14 +1,10 @@
-# 🌐 Network IDS Lab — Suricata & Zeek
+# Network IDS Lab — Suricata & Zeek
 
-> Hands-on network intrusion detection: writing and tuning Suricata rules, analyzing Zeek logs, and building detection logic against real captured traffic.
+> **Study notes.** I wrote these while studying this topic. They describe how I'd set it up and what to look for; they are not a record of a lab I ran myself.
 
-![Tools](https://img.shields.io/badge/tools-Suricata%20%2B%20Zeek-1f6feb?style=flat-square)
-![Type](https://img.shields.io/badge/type-Detection%20Engineering-2ea043?style=flat-square)
-![Framework](https://img.shields.io/badge/mapped-MITRE%20ATT%26CK-c5283d?style=flat-square)
+> Notes on network intrusion detection: writing and tuning Suricata rules, reading Zeek logs, and testing rules against captured traffic (pcap replay).
 
----
-
-## 🎯 Overview
+## Overview
 
 Network-based detection is a foundational SOC skill. Host-based telemetry (Sysmon, auditd) tells you what happened *on* an endpoint; network telemetry tells you what happened *between* them. This lab covers two complementary tools:
 
@@ -17,9 +13,7 @@ Network-based detection is a foundational SOC skill. Host-based telemetry (Sysmo
 
 Together they form a layered detection capability: Suricata catches what it knows, Zeek logs everything for humans to hunt in.
 
----
-
-## 🧰 Skills & Technologies
+## Skills & Technologies
 
 - **Suricata** — rule syntax, alert modes, pcap replay, EVE JSON output
 - **Zeek** — conn.log, dns.log, http.log, ssl.log, files.log, custom scripts
@@ -27,9 +21,7 @@ Together they form a layered detection capability: Suricata catches what it know
 - **jq / Bash** — querying and pivoting through Zeek JSON logs
 - **Python** — log parsing and correlation scripts
 
----
-
-## ⚙️ Lab Architecture
+## Lab Architecture
 
 ```
 [Traffic Generator]        [Analysis Host]
@@ -49,9 +41,7 @@ Kali Linux / attack VM     Ubuntu 22.04
                                └── ssl.log
 ```
 
----
-
-## 📋 Suricata Rules
+## Suricata Rules
 
 ### Rule syntax overview
 
@@ -104,9 +94,7 @@ alert tcp any any -> $HOME_NET 445 (
 )
 ```
 
----
-
-## 📊 Zeek Log Analysis
+## Zeek Log Analysis
 
 Zeek doesn't fire alerts — it writes structured logs of *everything*. The analyst brings the questions.
 
@@ -144,9 +132,7 @@ jq 'select(.user_agent | test("curl|python|nmap|zgrab"; "i"))' zeek/http.log
 jq 'select(.duration > 3600 and .conn_state == "S1")' zeek/conn.log
 ```
 
----
-
-## 🗺️ MITRE ATT&CK Coverage
+## MITRE ATT&CK Coverage
 
 | Tactic | Technique | Detection method |
 |--------|-----------|-----------------|
@@ -157,20 +143,16 @@ jq 'select(.duration > 3600 and .conn_state == "S1")' zeek/conn.log
 | Exfiltration | T1048 Over Alternative Protocol | Suricata ICMP tunnel rule + Zeek oversized ICMP |
 | Discovery | T1018 Remote System Discovery | Zeek conn.log fan-out pattern per source IP |
 
----
-
-## 🔬 Lab Exercises Completed
+## Lab Exercises Completed
 
 1. **Replay a known-malicious pcap** (from Malware Traffic Analysis) through Suricata — compare alerts to known ground truth
 2. **Write a custom rule** to detect the exact attack technique, tune it down to zero false positives
 3. **Hunt in Zeek conn.log** for beaconing behavior using connection regularity analysis
 4. **Correlate Suricata alert UID with Zeek logs** to pivot from alert → full connection context → related HTTP/DNS
 
----
-
-## 📚 What I Learned
+## Key points
 
 - **Suricata and Zeek are complementary, not redundant.** Suricata says "this is bad" (signature); Zeek says "here's everything that happened" (context). Together you can alert and then pivot through context without re-examining raw packets.
-- **Rule tuning is where skill lives.** My first Nmap detection rule fired on every SYN packet. Getting it precise enough to detect scans without firing on normal browsing took several iterations and a solid understanding of TCP state.
+- **Rule tuning is where skill lives.** A naive Nmap detection rule fires on every SYN packet. Making it precise enough to catch scans without firing on normal browsing takes a solid understanding of TCP state.
 - **Zeek logs unlock hypothesis-driven hunting.** Without Zeek, you can only detect what you've written a rule for. With it, you can ask questions like "which host is making connections to the most unique IPs?" and find things you didn't know to look for.
 - **pcap replay is the best way to test rules.** `suricata -r capture.pcap` gives you a deterministic, repeatable test environment — much better than hoping an attack happens while you're watching.

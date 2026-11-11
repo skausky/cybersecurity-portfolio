@@ -1,22 +1,16 @@
-# 🏠 Home SOC Lab
+# SOC lab design (notes)
+
+> **Study notes.** I wrote these while studying this topic. They describe how I'd set it up and what to look for; they are not a record of a lab I ran myself.
 
 > A virtualized Security Operations Center built to generate real telemetry, simulate adversary behavior, and validate detections end-to-end.
 
-![Status](https://img.shields.io/badge/status-active-2ea043?style=flat-square)
-![Stack](https://img.shields.io/badge/stack-Wazuh%20%2B%20ELK%20%2B%20Sysmon-1f6feb?style=flat-square)
-![Framework](https://img.shields.io/badge/mapped%20to-MITRE%20ATT%26CK-c5283d?style=flat-square)
-
----
-
-## 🎯 Objective
+## Objective
 
 Build a self-contained lab that lets me practice the full defender loop:
 
 > **Simulate an attack → collect the telemetry → detect it → respond → harden → re-test.**
 
-Every other project in this portfolio (detections, hunts, playbooks) was developed and validated against this lab.
-
-## 🧱 Architecture
+## Architecture
 
 ```mermaid
 flowchart TB
@@ -44,7 +38,7 @@ flowchart TB
     WAZUH --> IDX --> DASH
 ```
 
-## 🛠️ Components
+## Components
 
 | Host | Role | Telemetry Sources |
 |------|------|-------------------|
@@ -54,7 +48,7 @@ flowchart TB
 | Wazuh Manager | SIEM/EDR core | Rules engine, File Integrity Monitoring, Security Configuration Assessment |
 | Kali Linux | Attacker | Manual TTPs, network-based attacks |
 
-## ⚙️ Build Notes
+## Build Notes
 
 <details>
 <summary><b>1. Hypervisor & networking</b></summary>
@@ -87,7 +81,7 @@ flowchart TB
 - Manual TTPs from Kali for network-facing attacks (brute force, recon).
 </details>
 
-## 🔁 The Detection Loop in Practice
+## The Detection Loop in Practice
 
 1. Run an Atomic test, e.g. `Invoke-AtomicTest T1059.001` (malicious PowerShell).
 2. Confirm the telemetry lands in Wazuh/Kibana.
@@ -95,10 +89,10 @@ flowchart TB
 4. Build/refine the response steps → see [IR Playbooks](../03-incident-response-playbooks/).
 5. Apply hardening → see [System Hardening](../05-system-hardening/) → re-run the test to confirm reduced signal.
 
-## 📚 Lessons Learned
+## Lessons Learned
 
-- **Default logging is nowhere near enough.** Without Sysmon and script-block logging, most of the interesting Atomic tests were invisible. *Visibility is a prerequisite for detection.*
-- **Tuning is the job.** My first custom rules were noisy. Reducing false positives while keeping true positives is where the real skill lives.
+- **Default logging is nowhere near enough.** Without Sysmon and script-block logging, most interesting Atomic tests leave little to see. *Visibility is a prerequisite for detection.*
+- **Tuning is the job.** New custom rules are usually noisy. Reducing false positives while keeping true positives is where the real skill lives.
 - **Mapping to ATT&CK changes how you think** — it turns "I detected a weird process" into "I have coverage for T1059.001, but a gap on T1053."
 
 ## ▶️ Reproduce It

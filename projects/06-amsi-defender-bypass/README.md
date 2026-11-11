@@ -1,16 +1,10 @@
-# 🔴 AMSI & Windows Defender Bypass Research
+# AMSI & Windows Defender Bypass Research
 
 > C# tooling demonstrating how Antimalware Scan Interface (AMSI) and Windows Defender signature detection can be evaded — built to understand what attackers do so defenders can catch it.
 
-![Language](https://img.shields.io/badge/language-C%23-178600?style=flat-square)
-![Type](https://img.shields.io/badge/type-Red%20Team%20Education-c5283d?style=flat-square)
-![Framework](https://img.shields.io/badge/mapped-MITRE%20ATT%26CK-c5283d?style=flat-square)
+> **Disclaimer:** This project was developed as part of academic coursework (university capstone) in authorized, isolated lab environments. All techniques are documented for educational and defensive purposes only. Do not use against systems you do not own or have explicit written permission to test.
 
-> ⚠️ **Disclaimer:** This project was developed as part of academic coursework (university capstone) in authorized, isolated lab environments. All techniques are documented for educational and defensive purposes only. Do not use against systems you do not own or have explicit written permission to test.
-
----
-
-## 🎯 Overview
+## Overview
 
 AMSI (Antimalware Scan Interface) is a Windows API that allows security products to inspect scripts and in-memory content before execution. Modern attackers bypass it before running offensive tooling — understanding that bypass is essential for defenders who need to detect it.
 
@@ -20,9 +14,7 @@ This project covers two layers of evasion:
 
 I was the primary developer on this as a capstone team project; it gave me direct experience with the offensive side of the detection problem.
 
----
-
-## 🧰 Skills & Technologies
+## Skills & Technologies
 
 - C# (.NET / .NET Framework)
 - Windows Antimalware Scan Interface (AMSI) internals
@@ -31,9 +23,7 @@ I was the primary developer on this as a capstone team project; it gave me direc
 - Payload obfuscation (string splitting, encoding, runtime assembly)
 - AV/EDR signature analysis and evasion concepts
 
----
-
-## ⚙️ How It Works
+## How It Works
 
 ### AMSI Internals (Brief)
 
@@ -72,9 +62,7 @@ Loading shellcode or payloads via `Assembly.Load(byte[])` from a byte array avoi
 - Base64/XOR encoding of payload bytes, decoded at runtime
 - GUID-based or random variable naming in generated code
 
----
-
-## 🛡️ Detection & Defensive Relevance
+## Detection & Defensive Relevance
 
 This is the reason to build it: understanding the attack makes you better at catching it.
 
@@ -114,9 +102,7 @@ detection:
 level: high
 ```
 
----
-
-## 📁 Source Layout
+## Source Layout
 
 ```
 src/
@@ -130,18 +116,14 @@ src/
 
 > **Note:** Source files are intentionally omitted from the public repo. The techniques documented here are covered in public research (ired.team, S3cur3Th1sSh1t, etc.). This README documents the educational outcome, not a deployment-ready tool.
 
----
-
-## 📚 What I Learned
+## What I Learned
 
 - **How AMSI works at the API level** — not just "it scans things" but specifically which functions are called and when.
 - **Why memory patching works and why it's increasingly detectable** — EDRs monitor for exactly this pattern using kernel callbacks.
 - **The difference between signature evasion and behavioral evasion** — signature changes are a cat-and-mouse game; behavioral detections are much stickier.
 - **How to write detections for evasion attempts** — the attacker has to *do something* to bypass AMSI, and that something is detectable.
 
----
-
-## 🔗 References
+## References
 
 - [AMSI Internals — Microsoft Docs](https://docs.microsoft.com/en-us/windows/win32/amsi/antimalware-scan-interface-portal)
 - [MITRE ATT&CK T1562.001 — Impair Defenses: Disable or Modify Tools](https://attack.mitre.org/techniques/T1562/001/)

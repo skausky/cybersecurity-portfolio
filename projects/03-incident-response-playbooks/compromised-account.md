@@ -1,8 +1,6 @@
-# 🔐 Playbook: Compromised User Account
+# Playbook: Compromised User Account
 
 **Aligned to:** NIST SP 800-61 · **Severity:** High
-
----
 
 ## Triggers / Detection Signals
 - Impossible travel (logins from geographically distant locations in a short window)
@@ -13,8 +11,6 @@
 
 ## Severity & Escalation
 Treat as **High** by default. Escalate to IR lead immediately if the account is privileged, has access to sensitive data, or shows lateral movement.
-
----
 
 ## 1. Detection & Analysis
 - [ ] Review sign-in logs: source IPs, ASN, device, user agent, MFA status.

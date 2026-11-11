@@ -1,26 +1,18 @@
-# 📶 ackwave: Motion Sensing from Wi-Fi ACKs, Without Joining the Network
+# ackwave: Motion Sensing from Wi-Fi ACKs, Without Joining the Network
 
 > An ESP32-S3 that detects human motion from the radio channel to a Wi-Fi router it never connects to. It uses "Polite Wi-Fi": every 802.11 device acknowledges frames addressed to it, even from senders that are not on the network.
 
-![Hardware](https://img.shields.io/badge/hardware-ESP32--S3-1f6feb?style=flat-square)
-![Firmware](https://img.shields.io/badge/firmware-C%20%2F%20ESP--IDF%20%2F%20FreeRTOS-2ea043?style=flat-square)
-![Tools](https://img.shields.io/badge/tools-Python%20%2B%20NumPy%20%2B%20web%20dashboard-c5283d?style=flat-square)
-
-> ⚠️ **Scope:** Built and tested only against my own router and devices. The same technique works against any Wi-Fi device in radio range, which is the security point of this project. Do not point it at networks or devices you don't own.
+> **Scope:** Built and tested only against my own router and devices. The same technique works against any Wi-Fi device in radio range, which is the security point of this project. Do not point it at networks or devices you don't own.
 
 **Code:** [github.com/skausky/ackwave](https://github.com/skausky/ackwave)
 
----
-
-## 🎯 Overview
+## Overview
 
 Wi-Fi sensing usually needs a device that is joined to the network and generating traffic. ackwave does not join. It sends ~100 small frames per second to the router from a made-up sender address. The router's radio acknowledges each one before any authentication or encryption check, and the board reads the **Channel State Information (CSI)** of every ACK: per-subcarrier amplitude across 52 subcarriers. A person moving changes the multipath reflections, and the detector on the board turns that into motion / still.
 
 No password, no association, no IP address: the router never lists the board as a client.
 
----
-
-## 🧰 Skills & Technologies
+## Skills & Technologies
 
 - **Embedded C** on ESP-IDF v5.3 / FreeRTOS: raw 802.11 frame injection, promiscuous-mode CSI capture, ACK matching
 - **Signal processing**: band-pass filtering, short/long energy windows, auto-calibrated noise floor, hysteresis
@@ -29,9 +21,7 @@ No password, no association, no IP address: the router never lists the board as 
 - **Web dashboard** (stdlib HTTP server, Server-Sent Events, canvas charts): localhost-only by design and reached from a phone over an SSH tunnel; commands need a custom header and a local Host, so other web pages can't drive the board (CSRF and DNS-rebinding defence)
 - **Testing**: 300+ C unit checks plus Python pipeline and dashboard tests that check the firmware and the Python model agree on synthetic and recorded data
 
----
-
-## ⚙️ How it works
+## How it works
 
 ```
 ESP32-S3 (not associated)                   Router
@@ -48,9 +38,7 @@ score ÷ auto-calibrated quiet level → MOTION / STILL (on the board)
 USB serial → web dashboard / live GUI, recorder, history (optional; the board also works standalone)
 ```
 
----
-
-## 🔬 Results and lessons
+## Results and lessons
 
 - **Steady ~97 samples/s** from the router without being connected, independent of how busy the network is.
 - **Validated overnight against a mmWave radar** (DFRobot C4002) placed next to the bed: ackwave caught the larger movements; small movements of a person lying still were only partly caught (17 of 59 radar events), which set the next goal.
@@ -59,9 +47,7 @@ USB serial → web dashboard / live GUI, recorder, history (optional; the board 
 - **Breathing at close range.** Standing still about 1 m from the board on the board-router line, the breathing rate (10-11/min, counted) showed clearly; further away or off that line it did not.
 - **More links is not automatically better.** When the board also started poking a distant second access point, the main link's sample rate halved (97 → 43/s). This matches published research on multi-link Wi-Fi sensing ("dilution effect", arXiv 2602.10823) and shaped the design of an experimental multi-device mode: per-link detectors and quality gating instead of naive fusion.
 
----
-
-## 🛡️ Defender's view
+## Defender's view
 
 | | |
 |---|---|
@@ -70,8 +56,6 @@ USB serial → web dashboard / live GUI, recorder, history (optional; the board 
 | **Detection** | A wireless IDS can flag a steady, high-rate stream (~100/s) of null-data frames to an AP from a MAC address that never associates. Kismet-style monitoring would see it, and nothing on the wired side would. |
 | **Mitigation** | Limited: the ACK is sent by the radio hardware within microseconds. Options are RF monitoring, physical placement, and vendor-level changes to the standard (sensing is being formalised in IEEE 802.11bf). |
 
----
-
-## 🙏 Credit
+## Credit
 
 The Polite Wi-Fi behaviour was described by Ali Abedi and Omid Abari (University of Waterloo). ackwave is my own implementation on an ESP32-S3, with an on-device detector, calibration, glitch filtering and tooling.

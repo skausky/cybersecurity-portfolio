@@ -6,9 +6,7 @@
 [![Type](https://img.shields.io/badge/type-Authorized%20Lab%20Tool-2ea043?style=flat-square)](.)
 [![Interface](https://img.shields.io/badge/interface-Web%20UI%20%2B%20CLI-1f6feb?style=flat-square)](.)
 
-> ⚠️ **Authorized use only.** This tool is for security research and authorized penetration testing on networks you own or have explicit written permission to assess. Deauthentication attacks against third-party networks are illegal under the CFAA and equivalent laws. The author assumes no liability for misuse.
-
----
+> **Authorized use only.** This tool is for security research and authorized penetration testing on networks you own or have explicit written permission to assess. Deauthentication attacks against third-party networks are illegal under the CFAA and equivalent laws. The author assumes no liability for misuse.
 
 ## What This Demonstrates
 
@@ -27,8 +25,6 @@ Building a tool like this requires understanding the 802.11 protocol at a level 
 | Web security basics | Session token auth, localhost-only binding, bearer token enforcement on all routes |
 | Defensive awareness | Understanding what deauth attacks generate in WIDS logs, why 802.11w (MFP) defeats this technique |
 
----
-
 ## Overview
 
 CamJam evolved from a single Bash script (`multi.sh`) into a full web platform (v2). The two versions are preserved side-by-side as a record of how the tool matured:
@@ -37,8 +33,6 @@ CamJam evolved from a single Bash script (`multi.sh`) into a full web platform (
 |---------|-------------|
 | [`versions/camjam_v1/`](versions/camjam_v1/) | Original CLI — Bash-driven multi-BSSID deauth loop with client verification |
 | [`camjam_v2/`](camjam_v2/) | Web-first platform with real-time dashboard, persistent database, and multi-target queue |
-
----
 
 ## Attack Techniques Explored
 
@@ -103,8 +97,6 @@ OUI lookups flag `D8:3A:DD` as Hikvision — a camera manufacturer. The tool que
 
 **Why this matters for defenders:** an attacker targeting your camera system doesn't need to know which devices are cameras ahead of time. The OUI tells them. Any camera on your network using its factory-assigned MAC is trivially identifiable and targetable.
 
----
-
 ## How It Works
 
 ```
@@ -125,8 +117,6 @@ OUI lookups flag `D8:3A:DD` as Hikvision — a camera manufacturer. The tool que
 
 The v2 web dashboard shows this pipeline live via WebSocket events.
 
----
-
 ## v2 Features
 
 - **Responsive web dashboard** — real-time AP/client table, deauth queue controls, live event feed
@@ -136,8 +126,6 @@ The v2 web dashboard shows this pipeline live via WebSocket events.
 - **Deauth verifier** — confidence levels (high / medium / low / inconclusive) based on before/after client counts
 - **Session security** — randomized localhost port + bearer token; no external exposure
 - **CLI fallback** — `--cli` flag for headless/scripted use
-
----
 
 ## Installation
 
@@ -160,8 +148,6 @@ sudo ./scripts/fix-alfa-5ghz.sh --verify-only   # after replug or reboot
 ```
 
 See [`scripts/alfa-5ghz-driver.md`](scripts/alfa-5ghz-driver.md) for details.
-
----
 
 ## Usage
 
@@ -186,8 +172,6 @@ declare -A BSSID_CHAN=(
   ["AA:BB:CC:DD:EE:F1"]="6"   # BSSID → channel
 )
 ```
-
----
 
 ## The Key Lesson: Use a Private MAC Address
 
@@ -219,8 +203,6 @@ An attacker running a tool like this can:
 
 **MITRE ATT&CK:** T1498 (Network Denial of Service), T1040 (Network Sniffing — passive recon phase), T1592.001 (Gather Victim Host Information — OUI-based device fingerprinting)
 
----
-
 ## Defensive Relevance
 
 Understanding this tool makes you better at catching it in production.
@@ -233,8 +215,6 @@ Understanding this tool makes you better at catching it in production.
 | Spoofed BSSID | WIDS correlation | Frame source MAC doesn't match AP's physical MAC in asset inventory |
 | Client repeatedly drops/reconnects | RADIUS logs / AP association log | Same client cycling through authenticate → associate → deauth in seconds |
 | Camera feed interruptions correlating with deauth events | NVR / camera management platform | Physical security breach — attacker can blind specific cameras on demand |
-
----
 
 ## Project Structure
 
@@ -253,8 +233,6 @@ versions/camjam_v1/     ← original Bash + Python CLI (frozen reference)
 multi.sh                ← standalone multi-BSSID deauth script (configurable)
 scripts/                ← adapter setup and driver tooling
 ```
-
----
 
 ## What I Learned
 

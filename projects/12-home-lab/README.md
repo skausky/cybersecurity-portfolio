@@ -1,22 +1,14 @@
-# 🏠 Home Security Monitoring Lab
+# Home Security Monitoring Lab
 
 > A self-hosted physical security and monitoring infrastructure built on real hardware — integrating IoT sensors, AI-assisted NVR, MQTT messaging, and DNS-level security.
 
-![Stack](https://img.shields.io/badge/stack-Home%20Assistant%20%2B%20ESPHome%20%2B%20Frigate-1f6feb?style=flat-square)
-![Hardware](https://img.shields.io/badge/hardware-Raspberry%20Pi%204%20%2B%20ESP32-2ea043?style=flat-square)
-![Type](https://img.shields.io/badge/type-Network%20Operations%20Lab-8957e5?style=flat-square)
-
----
-
-## 🎯 Overview
+## Overview
 
 This project demonstrates real network operations experience: sensor integration, protocol fluency (MQTT, HTTP, mDNS), layered monitoring, alerting pipelines, and DNS-level security — all running on physical hardware in a production home environment.
 
 The skills here map directly to NOC/SOC environments: you can't monitor what you can't measure, and building the full pipeline from sensor → MQTT → automation → alert develops intuition for every layer of an operational monitoring stack.
 
----
-
-## 🧰 Skills & Technologies
+## Skills & Technologies
 
 **Platforms & Infrastructure**
 - Home Assistant OS on Raspberry Pi 4 — orchestration, automation, dashboards
@@ -40,9 +32,7 @@ The skills here map directly to NOC/SOC environments: you can't monitor what you
 - Network segmentation — IoT devices isolated from primary LAN
 - DHCP workaround — AdGuard integrated despite ISP gateway's locked DHCP
 
----
-
-## 🏗️ Architecture
+## Architecture
 
 ```
 [Physical Layer]
@@ -67,9 +57,7 @@ IP Cameras    ──► Frigate NVR (AI object detection)
                   (notify.mobile_app)
 ```
 
----
-
-## 🔬 Technical Deep-Dives
+## Technical Deep-Dives
 
 ### mmWave Radar Sensors
 
@@ -138,9 +126,7 @@ Frigate detects person on camera
     → push notification delivered with camera snapshot
 ```
 
----
-
-## 🛡️ Security Relevance to SOC/NOC Work
+## Security Relevance to SOC/NOC Work
 
 | Home Lab Skill | Enterprise Equivalent |
 |-|-|
@@ -151,9 +137,7 @@ Frigate detects person on camera
 | ESPHome serial protocol parsing | Log parser / connector development (Logstash, Cribl) |
 | DHCP/DNS architecture workaround | Network troubleshooting, understanding resolver chain |
 
----
-
-## 📁 Contents
+## Contents
 
 ```
 esphome-configs/
@@ -172,9 +156,7 @@ lovelace/
 └── security_overview.yaml  ← Consolidated sensor + camera status view
 ```
 
----
-
-## 📚 What I Learned
+## What I Learned
 
 - **MQTT is everywhere in IoT and industrial monitoring.** Understanding publish/subscribe patterns, topic hierarchy design, and QoS levels translates directly to message bus architectures used in enterprise security pipelines.
 - **DNS visibility is underrated.** AdGuard's query logs give me visibility into every DNS lookup on the network — it's the same principle behind enterprise DNS security platforms. Anomalous DNS (unusual TLDs, DGA-like patterns, unexpected external queries from IoT devices) is a high-signal indicator.

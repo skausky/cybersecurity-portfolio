@@ -1,10 +1,6 @@
 # Certifications
 
-| Certification | Status | Date | Credential ID |
-|---------------|--------|------|---------------|
-| CompTIA Security+ (SY0-701) | 🔄 In progress | — | — |
-| Blue Team Level 1 (BTL1) | 📋 Planned | — | — |
+- **CompTIA Security+ (SY0-701):** studying now.
+- **Blue Team Level 1 (BTL1):** planned after Security+.
 
-## Hands-on Training Platforms
-
-- **TryHackMe** — SOC Level 1 path (active)
+Practice: TryHackMe (SOC Level 1 path).

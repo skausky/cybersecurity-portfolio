@@ -6,9 +6,7 @@
 [![Type](https://img.shields.io/badge/type-Authorized%20Assessment%20Tool-2ea043?style=flat-square)](.)
 [![CVEs](https://img.shields.io/badge/CVE%20research-Hikvision%20%2F%20Dahua-c5283d?style=flat-square)](.)
 
-> ⚠️ **Authorized use only.** This tool is for security professionals assessing networks and devices they own or have explicit written permission to test. Scanning or accessing systems without authorization is illegal in most jurisdictions. The author assumes no liability for misuse.
-
----
+> **Authorized use only.** This tool is for security professionals assessing networks and devices they own or have explicit written permission to test. Scanning or accessing systems without authorization is illegal in most jurisdictions. The author assumes no liability for misuse.
 
 ## What This Demonstrates
 
@@ -26,8 +24,6 @@ IP cameras are among the most commonly exploited devices on enterprise and home 
 | Web development | FastAPI dashboard with Server-Sent Events for live scan results, optional dependency isolation |
 | Security research | CVE analysis, PoC testing, understanding root cause vs. symptom for each vulnerability class |
 
----
-
 ## Overview
 
 The scanner runs in two modes:
@@ -42,8 +38,6 @@ The scanner runs in two modes:
 5. Every verified hit is recorded immediately to multiple outputs (JSONL, CSV, per-IP folder)
 6. Optional web dashboard shows live results via Server-Sent Events
 
----
-
 ## Vulnerability Coverage
 
 | Vulnerability | CVE | What it detects |
@@ -54,8 +48,6 @@ The scanner runs in two modes:
 | Dahua authentication bypass | CVE-2021-33044 | Magic packet bypass on older firmware |
 
 Each finding is tagged with `severity` (critical / high / medium), `unauth` flag, `vulns[]` list, and ready-to-use verification commands.
-
----
 
 ## Quick Start
 
@@ -87,8 +79,6 @@ python3 rtsp_finder.py
 # Open http://127.0.0.1:8080
 ```
 
----
-
 ## Output
 
 Every scan run produces:
@@ -102,8 +92,6 @@ output/
     ├── stream_<id>.txt      ← human-readable: URL, creds, severity, ffplay/ffmpeg commands
     └── stream_<id>.json     ← machine-readable: all vuln fields
 ```
-
----
 
 ## Architecture
 
@@ -123,8 +111,6 @@ cam_scan/
 └── web.py          ← FastAPI dashboard with SSE live feed (optional)
 ```
 
----
-
 ## Defensive Relevance
 
 The same methodology attackers use to find exposed cameras is the methodology defenders should use to audit their own networks before attackers do.
@@ -138,8 +124,6 @@ The same methodology attackers use to find exposed cameras is the methodology de
 
 **MITRE ATT&CK:** T1046 (Network Service Discovery), T1078.001 (Default Accounts), T1190 (Exploit Public-Facing Application — for CVE checks)
 
----
-
 ## Research References
 
 The `research/` directory (local only, not tracked) contains cloned PoC repos for the CVEs studied:
@@ -151,8 +135,6 @@ The `research/` directory (local only, not tracked) contains cloned PoC repos fo
 | DahuaLoginBypass | Dahua auth bypass | Default cred and bypass pattern research |
 
 These external repos are gitignored — they're study material, not part of this codebase.
-
----
 
 ## What I Learned
 

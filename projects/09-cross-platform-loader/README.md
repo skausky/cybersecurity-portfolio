@@ -1,16 +1,10 @@
-# 🔀 Cross-Platform C# Loader — Linux-to-Windows Payload Staging
+# Cross-Platform C# Loader — Linux-to-Windows Payload Staging
 
 > A red team research project demonstrating how a C# payload can be compiled on Linux and staged for execution on a Windows target — documenting what defenders see at each step.
 
-![Language](https://img.shields.io/badge/language-C%23%20%2F%20Bash-178600?style=flat-square)
-![Type](https://img.shields.io/badge/type-Red%20Team%20Education-c5283d?style=flat-square)
-![Framework](https://img.shields.io/badge/mapped-MITRE%20ATT%26CK-c5283d?style=flat-square)
+> **Disclaimer:** This project was built in an isolated lab environment for red team research and education. Cross-platform loader techniques are documented here to help defenders understand what they're detecting. Use only in authorized environments.
 
-> ⚠️ **Disclaimer:** This project was built in an isolated lab environment for red team research and education. Cross-platform loader techniques are documented here to help defenders understand what they're detecting. Use only in authorized environments.
-
----
-
-## 🎯 Overview
+## Overview
 
 Real red team operators often work from Linux (Kali) and need to deliver payloads to Windows targets. Understanding the full compilation-to-delivery pipeline is essential for both red teamers and the blue teamers who need to detect it.
 
@@ -20,9 +14,7 @@ This project covers:
 3. **Common delivery mechanisms** — HTTP staging, SMB drops, base64-encoded strings in scripts
 4. **What each stage looks like to a defender**
 
----
-
-## 🧰 Skills & Technologies
+## Skills & Technologies
 
 - C# (.NET / .NET Core)
 - dotnet CLI on Linux (cross-compilation target: `win-x64`)
@@ -31,9 +23,7 @@ This project covers:
 - Encoding and delivery: base64, HTTP serving
 - Process concepts: parent PID spoofing, process hollowing (documented, not implemented)
 
----
-
-## ⚙️ How Cross-Platform C# Compilation Works
+## How Cross-Platform C# Compilation Works
 
 Modern .NET Core / .NET 6+ fully supports building Windows executables from Linux:
 
@@ -80,9 +70,7 @@ var asm = Assembly.Load(bytes);
 asm.EntryPoint?.Invoke(null, new object[] { new string[0] });
 ```
 
----
-
-## 🗺️ MITRE ATT&CK Mapping
+## MITRE ATT&CK Mapping
 
 | Technique | ID | Where it applies |
 |-----------|----|-|
@@ -92,9 +80,7 @@ asm.EntryPoint?.Invoke(null, new object[] { new string[0] });
 | Command and Scripting Interpreter: PowerShell | T1059.001 | Often used as the delivery mechanism |
 | Process Injection (advanced) | T1055 | Follow-on stage using the loaded payload |
 
----
-
-## 🛡️ Detection & Defensive Relevance
+## Detection & Defensive Relevance
 
 ### Detection opportunities at each stage
 
@@ -136,9 +122,7 @@ level: medium
 - **Self-contained .NET executables are large but self-sufficient** — they don't require a .NET runtime on the target, which means no dependency that could tip off an analyst checking installed software.
 - **Process lineage is the tell.** Legitimate software doesn't download a .exe from an external IP and immediately execute it. Parent-child process trees are the primary detection surface.
 
----
-
-## 📁 Source Layout
+## Source Layout
 
 ```
 src/
@@ -151,9 +135,7 @@ src/
 └── build.sh                ← Cross-compile from Linux to win-x64
 ```
 
----
-
-## 📚 What I Learned
+## What I Learned
 
 - **dotnet CLI's cross-compilation is seamless** — the toolchain handles PE generation, manifest embedding, and architecture targeting without needing a Windows build server.
 - **Self-contained executables change the threat model** — no runtime dependency reduces the attacker's footprint and prerequisites, but also makes the binary larger (a potential indicator).

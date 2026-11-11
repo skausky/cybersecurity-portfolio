@@ -1,12 +1,10 @@
-# 🚨 Incident Response Playbooks
+# Incident Response Playbooks
+
+> **Study notes.** I wrote these while studying this topic. They describe how I'd set it up and what to look for; they are not a record of a lab I ran myself.
 
 > Practical, repeatable response playbooks aligned to the **NIST SP 800-61** incident handling lifecycle. Written to be usable by a tier-1 analyst under pressure.
 
-![Standard](https://img.shields.io/badge/aligned-NIST%20800--61-2ea043?style=flat-square)
-
----
-
-## 🔁 The Lifecycle These Follow
+## The Lifecycle These Follow
 
 ```mermaid
 flowchart LR
@@ -18,7 +16,7 @@ flowchart LR
     L -.feeds back.-> P
 ```
 
-## 📒 Playbooks
+## Playbooks
 
 | Playbook | Scenario | File |
 |----------|----------|------|
@@ -26,7 +24,7 @@ flowchart LR
 | 🔐 Compromised Account | Anomalous logins, impossible travel, MFA fatigue | [`compromised-account.md`](./compromised-account.md) |
 | 🧬 Ransomware | Mass file encryption, ransom note detected | [`ransomware.md`](./ransomware.md) |
 
-## 🧩 What each playbook contains
+## What each playbook contains
 
 - **Trigger / detection signals** — how this lands in the queue
 - **Severity & escalation criteria** — when to wake someone up
@@ -35,4 +33,4 @@ flowchart LR
 - **Evidence to preserve** — for forensics and post-incident review
 - **Communication notes** — who to notify
 
-> These are written from a defender's perspective and tested conceptually against scenarios I generated in the [Home SOC Lab](../01-home-soc-lab/).
+> Written from a tier-1 analyst's point of view as study material.

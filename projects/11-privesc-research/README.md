@@ -1,24 +1,16 @@
-# ⬆️ Privilege Escalation Research
+# Privilege Escalation Research
 
 > Methodology-first research into local privilege escalation techniques on Linux and Windows — each technique mapped to MITRE ATT&CK and paired with the detection it leaves behind.
 
-![Platforms](https://img.shields.io/badge/platforms-Linux%20%2B%20Windows-1f6feb?style=flat-square)
-![Type](https://img.shields.io/badge/type-Offensive%20Research-c5283d?style=flat-square)
-![Framework](https://img.shields.io/badge/mapped-MITRE%20ATT%26CK-c5283d?style=flat-square)
+> **Disclaimer:** All techniques documented here were practiced in isolated lab environments (TryHackMe, personal VMs). Privilege escalation against systems you don't own is illegal. This research is documented to support defensive awareness and SOC detection development.
 
-> ⚠️ **Disclaimer:** All techniques documented here were practiced in isolated lab environments (TryHackMe, personal VMs). Privilege escalation against systems you don't own is illegal. This research is documented to support defensive awareness and SOC detection development.
-
----
-
-## 🎯 Overview
+## Overview
 
 Privilege escalation is how an attacker moves from "I have a foothold" to "I own this machine." For a SOC analyst, understanding what escalation looks like — the commands that get run, the files that get touched, the processes that get spawned — is essential for building detections that catch it.
 
 This research covers the major escalation categories on both Linux and Windows, using a consistent methodology: **enumerate → identify → exploit → document → detect.**
 
----
-
-## 🔍 Enumeration Tools
+## Enumeration Tools
 
 | Tool | Platform | What it finds |
 |------|----------|--------------|
@@ -28,9 +20,7 @@ This research covers the major escalation categories on both Linux and Windows, 
 | **accesschk.exe** | Windows | Granular service and file permission analysis |
 | **PowerUp.ps1** | Windows | Automated Windows privilege escalation checks |
 
----
-
-## 🐧 Linux Techniques
+## Linux Techniques
 
 ### SUID/SGID Abuse (T1548.001)
 
@@ -88,9 +78,7 @@ echo 'backdoor:$(openssl passwd -1 password):0:0:root:/root:/bin/bash' >> /etc/p
 
 **Detection:** File Integrity Monitoring (Wazuh FIM, AIDE, auditd) on `/etc/passwd`, `/etc/shadow`, `/etc/sudoers`.
 
----
-
-## 🪟 Windows Techniques
+## Windows Techniques
 
 ### Unquoted Service Path (T1574.009)
 
@@ -148,9 +136,7 @@ reg query HKLM\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallEle
 
 **Detection:** MSI installations from unexpected locations (Sysmon Event ID 11 file create + Event ID 1 msiexec); Windows Event 1040/1042 (MSI installation begin/end).
 
----
-
-## 🗺️ MITRE ATT&CK Coverage
+## MITRE ATT&CK Coverage
 
 | Technique | ID | Platform |
 |-----------|----|-|
@@ -161,9 +147,7 @@ reg query HKLM\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallEle
 | Hijack Execution Flow: Unquoted Service Path | T1574.009 | Windows |
 | Access Token Manipulation: Token Impersonation/Theft | T1134.001 | Windows |
 
----
-
-## 📁 Contents
+## Contents
 
 ```
 methodology/
@@ -172,9 +156,7 @@ methodology/
 └── mitre-mapping.md             ← ATT&CK technique cross-reference
 ```
 
----
-
-## 📚 What I Learned
+## What I Learned
 
 - **Enumeration is 90% of privilege escalation.** The techniques themselves are often simple once you've found the misconfiguration. Tools like LinPEAS/WinPEAS automate enumeration, but understanding what they're looking for lets you search manually when they're blocked by AV.
 - **Every escalation technique leaves a detection opportunity.** SUID execution leaves a process with effective UID 0 and a suspicious parent. Unquoted paths leave file creation events in predictable locations. The question is whether the defender has the logging configured to catch it.

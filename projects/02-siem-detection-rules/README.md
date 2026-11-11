@@ -1,22 +1,19 @@
-# 📡 SIEM Detection Rules
+# SIEM Detection Rules
 
-> Custom detection content written in **Sigma** (vendor-agnostic) and translated to Wazuh / KQL, each mapped to MITRE ATT&CK and validated against my [Home SOC Lab](../01-home-soc-lab/).
+> **Study notes.** I wrote these while studying this topic. They describe how I'd set it up and what to look for; they are not a record of a lab I ran myself.
 
-![Format](https://img.shields.io/badge/format-Sigma-1f6feb?style=flat-square)
-![Framework](https://img.shields.io/badge/mapped-MITRE%20ATT%26CK-c5283d?style=flat-square)
+> Custom detection content written in **Sigma** (vendor-agnostic) and translated to Wazuh / KQL, each mapped to MITRE ATT&CK, with the Atomic Red Team test that should fire it.
 
----
-
-## 🎯 Philosophy
+## Philosophy
 
 A good detection is more than a keyword match. For each rule I aim to document:
 
 - **What adversary behavior** it catches (ATT&CK technique)
 - **Why** that behavior is suspicious
-- **Known false positives** and how I tuned them out
-- **How I validated it** (which Atomic test fired it)
+- **Likely false positives** and how to tune them out
+- **How to test it** (which Atomic test should fire it)
 
-## 📁 Rules in this repo
+## Rules in this repo
 
 | Rule | ATT&CK | Detects | File |
 |------|--------|---------|------|
@@ -24,7 +21,7 @@ A good detection is more than a keyword match. For each rule I aim to document:
 | New service installed | T1543.003 | Service creation often used for persistence | [`sigma/windows_new_service.yml`](./sigma/windows_new_service.yml) |
 | Linux SSH brute force | T1110 | Repeated failed SSH auth from a single source | [`sigma/linux_ssh_bruteforce.yml`](./sigma/linux_ssh_bruteforce.yml) |
 
-## 🔬 Example: PowerShell Download Cradle
+## Example: PowerShell Download Cradle
 
 A classic initial-access / execution technique. The Sigma rule below keys on `powershell.exe` spawning with download-and-execute patterns in the command line:
 
@@ -56,13 +53,13 @@ falsepositives:
 level: high
 ```
 
-### How I validated it
+### How to test it
 ```powershell
 Invoke-AtomicTest T1059.001 -TestNumbers 1
 ```
-The test fired the rule in Wazuh; I then added an allowlist exception for our internal module repo path to clear the recurring false positive.
+This Atomic test should fire the rule. A likely false positive is a legitimate download from an internal module repository; allowlisting that path would clear it.
 
-## 🔄 Sigma → your SIEM
+## Sigma → your SIEM
 
 Sigma is intentionally vendor-neutral. To deploy these:
 
@@ -72,7 +69,7 @@ sigma convert -t lucene -p ecs_windows sigma/powershell_download_cradle.yml   # 
 sigma convert -t kusto sigma/powershell_download_cradle.yml                    # Microsoft Sentinel/KQL
 ```
 
-## 🧭 Coverage Map
+## Coverage Map
 
 I track coverage against ATT&CK tactics so gaps are visible:
 

@@ -6,8 +6,6 @@
 [![Framework](https://img.shields.io/badge/framework-ESPHome-1f6feb?style=flat-square)](.)
 [![HA](https://img.shields.io/badge/integration-Home%20Assistant-41bdf5?style=flat-square)](.)
 
----
-
 ## What This Demonstrates
 
 Building these configs required going below the ESPHome abstraction layer — parsing raw binary serial frames in C++ lambdas, implementing stateful protocol engines, and designing sensor pipelines that publish clean data to Home Assistant. These are the same skills that show up in log parser development, protocol analysis, and IoT security work.
@@ -24,8 +22,6 @@ Building these configs required going below the ESPHome abstraction layer — pa
 | Sensor data pipelines | Multi-target position tracking (x/y/speed/angle/SNR) published as individual HA entities |
 | Systems debugging | Watchdog timers, frame validation, first-frame logging, NAN handling for absent targets |
 
----
-
 ## Sensors Covered
 
 | Config | Sensor | Protocol | Targets | Key Features |
@@ -33,8 +29,6 @@ Building these configs required going below the ESPHome abstraction layer — pa
 | [`ld2450-radar.yaml`](ld2450-radar.yaml) | HLK-LD2450 | Native ESPHome component | 3 simultaneous | Zone-based detection, multi-target x/y/speed/angle/resolution, Bluetooth config |
 | [`ld2451-radar.yaml`](ld2451-radar.yaml) | HLK-LD2451 | Custom binary UART (256000 baud) | 3 simultaneous | Approaching/receding classification, SNR per target, alarm output, IR LED heartbeat |
 | [`c4001-radar.yaml`](c4001-radar.yaml) | DFRobot C4001 / SEN0609 | ASCII command/response (9600 baud) | 1 primary + energy | Presence + distance-and-speed modes, configurable range/sensitivity/latency, micro-motion detection |
-
----
 
 ## How It Works
 
@@ -86,8 +80,6 @@ Configuration commands (enable config mode → write → end config mode) are is
 
 The C4001 uses a human-readable command/response protocol at 9600 baud. Commands like `setRange 0.6 12.0`, `setSensitivity 7 5`, `setLatency 0 15` configure the sensor; responses are parsed from `Response <values>` lines. Presence data arrives as NMEA-style `$DFHPD` and `$DFDMD` sentences.
 
----
-
 ## Security — Secrets Management
 
 All credentials use ESPHome's `!secret` mechanism. **No passwords or keys appear in these YAML files.**
@@ -114,8 +106,6 @@ Copy [`secrets.yaml.example`](secrets.yaml.example) to `secrets.yaml` (gitignore
 python3 -c "import secrets, base64; print(base64.b64encode(secrets.token_bytes(32)).decode())"
 ```
 
----
-
 ## Setup
 
 1. Install [ESPHome](https://esphome.io/guides/installing_esphome.html)
@@ -130,8 +120,6 @@ esphome run c4001-radar.yaml
 
 Home Assistant will auto-discover each device via the native API once it's on the network.
 
----
-
 ## Relevance to Security / Network Operations
 
 | Home Lab Skill | Enterprise / SOC Equivalent |
@@ -142,8 +130,6 @@ Home Assistant will auto-discover each device via the native API once it's on th
 | Watchdog timer clearing stale state | Timeout logic in correlation rules, alert expiry in SOAR platforms |
 | OTA firmware updates | Remote endpoint management, patch deployment |
 | API encryption with rotating keys | mTLS, API key rotation, encrypted agent communication |
-
----
 
 ## What I Learned
 

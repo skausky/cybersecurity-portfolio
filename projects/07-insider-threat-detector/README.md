@@ -1,146 +1,49 @@
-# 🔍 Insider Threat Detector
+# Insider Threat Detector
 
-> A lightweight SIEM prototype that ingests user activity logs and flags anomalous behavior patterns associated with insider threats — data exfiltration, off-hours access, and privilege abuse.
+A Windows monitoring agent written in C that reports user activity to a small Python server, which scores each event for risk, raises alerts and shows everything on a live dashboard. This started as a team project for a class; I wrote the agent, the server and the dashboard.
 
-![Language](https://img.shields.io/badge/language-Python-3776ab?style=flat-square)
-![Type](https://img.shields.io/badge/type-Detection%20Tool-2ea043?style=flat-square)
-![Framework](https://img.shields.io/badge/mapped-MITRE%20ATT%26CK-c5283d?style=flat-square)
+**Code:** [github.com/skausky/InsiderThreatDetector](https://github.com/skausky/InsiderThreatDetector)
 
----
+Only for lab machines you own, with the user's knowledge. It records clipboard text, window titles and screenshots, so running it on someone else's computer would be a serious privacy problem.
 
-## 🎯 Overview
-
-Insider threats — malicious, negligent, or compromised employees — are among the hardest threat actors to detect because they use legitimate credentials and access patterns. Commercial SIEMs (Splunk, Microsoft Sentinel, QRadar) handle this through user behavior analytics (UEBA), but building one from scratch is the best way to understand what's happening under the hood.
-
-This tool ingests structured log data (authentication events, file access, process execution) and applies rule-based and statistical detection logic to surface anomalous patterns. The architecture parallels real SIEM pipelines: ingest → parse → enrich → correlate → alert.
-
----
-
-## 🧰 Skills & Technologies
-
-- Python (log parsing, data structures, alerting)
-- Log formats: Windows Security Event Logs (EVTX), syslog, CSV
-- Detection logic: threshold rules, time-window correlation, baseline deviation
-- Alert generation and triage output
-- Concepts: UEBA, behavioral baselining, insider threat indicators
-
----
-
-## ⚙️ How It Works
+## How it works
 
 ```
-Log Sources (CSV / EVTX / syslog)
-        │
-        ▼
-   Ingest & Parse
-   (normalize to common schema)
-        │
-        ▼
-   Enrich
-   (add user baseline, time context, asset sensitivity)
-        │
-        ▼
-   Detection Engine
-   (rule evaluation → anomaly scoring)
-        │
-        ▼
-   Alert Output
-   (console / JSON / log file)
+Windows endpoint: agent.exe (C, Win32 APIs only)
+  process, USB, clipboard, window-title and network-upload monitors
+  -> ring buffer -> HTTP POST every 30 s (pre-shared key header)
+        |
+        v
+Server: server_backend.py (Flask + SQLite)
+  check key -> score risk -> store -> alert by webhook or email above a threshold
+        |
+        v
+Dashboard: one HTML page (React from a CDN, no build step), refreshes every 5 s
 ```
 
-### Indicator Categories
+**The agent** is a single `.exe` with no dependencies. It uses `WinMain` and the `-mwindows` linker flag, so no console window appears. Each monitor is its own thread writing into a shared 1000-slot ring buffer behind a `CRITICAL_SECTION`:
 
-| Category | What it looks for | Example indicators |
-|----------|-------------------|-------------------|
-| **Data staging / exfiltration** | Large file copies, access to sensitive paths, unusual outbound | >500MB written in <10 min, access to HR/finance paths |
-| **Off-hours access** | Login or file activity outside the user's normal window | Authentication at 2 AM when baseline is 8 AM–6 PM |
-| **Privilege abuse** | Accessing resources outside normal job function | Finance user querying IT admin shares |
-| **Anomalous logon behavior** | Failed attempts, new workstations, source IP changes | 5+ failed logins followed by success, RDP from new host |
-| **Lateral movement signals** | Auth events across multiple systems in short windows | Same user authenticating to 8 hosts in 30 minutes |
+- **Processes:** a Toolhelp32 snapshot every 2 s, compared with the last one to report new processes.
+- **USB:** a hidden message-only window registered for device notifications, so it uses no CPU until a device is plugged in.
+- **Clipboard:** checks clipboard text every 2 s against keywords like "password", "api_key" and "-----BEGIN PRIVATE KEY".
+- **Window titles:** reports when the foreground window changes.
+- **Uploads:** sums outgoing bytes across network interfaces every 10 s and flags spikes against a short rolling average.
+- **After hours:** every event is tagged if it happens outside configured work hours.
+- **Screenshots:** on high-risk events it captures the active window (`PrintWindow`, falling back to `BitBlt`), builds a BMP in memory and sends it base64-encoded with the event.
 
-### Detection Rules (examples)
+**The server** checks the agent's key, scores each event, stores it in SQLite and sends a webhook or email when the score passes a threshold (80 by default). The dashboard lists endpoints by risk and shows a live event feed. It also has a demo mode with fake events, so you can try it without an agent.
 
-```python
-# Off-hours logon
-def check_off_hours_logon(event, user_baseline):
-    hour = event.timestamp.hour
-    normal_start = user_baseline['logon_window']['start']   # e.g. 7
-    normal_end   = user_baseline['logon_window']['end']     # e.g. 19
-    return not (normal_start <= hour < normal_end)
+## What I learned
 
-# Spike in file writes
-def check_file_write_spike(events, window_minutes=10, threshold_mb=500):
-    windowed = filter_by_time_window(events, window_minutes)
-    total_mb = sum(e.bytes_written for e in windowed) / 1_048_576
-    return total_mb > threshold_mb
-```
+- **The Win32 API without a framework:** device notifications through a message-only window, `PrintWindow` failing on some composited windows (hence the `BitBlt` fallback), and wide strings everywhere.
+- **Threads sharing one buffer** need a lock and a plan for when it fills up. Mine drops the oldest events rather than blocking the monitors.
+- **Most of the signal is context, not single events.** A USB stick at 2 pm is normal; a USB stick, a large upload and a clipboard full of "password" at 11 pm is worth an alert. That's why scoring combines event type, keywords and time of day.
 
----
+## What a defender sees
 
-## 🗺️ MITRE ATT&CK Coverage
+The same behaviours this tool flags are what EDR and DLP products watch for. Running the agent itself is noisy: a new unsigned executable, a hidden window, regular HTTP posts to one internal host, and screen capture API calls. A Sysmon config logging process creation (event 1) and network connections (event 3) would show it within a minute.
 
-| Technique | ID | What we detect |
-|-----------|----|-|
-| Valid Accounts (insider using legit creds) | T1078 | Baseline deviation on known-good accounts |
-| Data Staged | T1074 | Bulk file writes / unusual staging directories |
-| Exfiltration Over Web Service | T1567 | Large outbound data (if network logs available) |
-| Account Discovery | T1087 | LDAP/AD enumeration outside normal job function |
-| Lateral Movement | T1021 | Multi-host auth in short time windows |
+## Limits
 
----
-
-## 📁 Source Layout
-
-```
-src/
-├── ingest/
-│   ├── evtx_parser.py      ← Windows Security Event Log reader
-│   ├── syslog_parser.py
-│   └── csv_parser.py
-├── detection/
-│   ├── rules.py            ← threshold and correlation rules
-│   ├── baseline.py         ← per-user behavioral baseline building
-│   └── scoring.py          ← risk score aggregation
-├── alert/
-│   └── output.py           ← alert formatting and output
-├── config/
-│   └── rules.yaml          ← rule thresholds (externalized)
-└── main.py
-```
-
----
-
-## 🚀 Usage
-
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Run against a sample log directory
-python main.py --logs ./sample-logs/ --output alerts.json
-
-# Build a baseline from clean historical data first
-python main.py --baseline ./historical-logs/ --save-baseline baseline.json
-
-# Run detection using saved baseline
-python main.py --logs ./sample-logs/ --baseline baseline.json
-```
-
----
-
-## 🔗 Real-World Parallels
-
-| This Tool | Commercial Equivalent |
-|-----------|-----------------------|
-| Rule-based detection engine | Splunk correlation searches, Sentinel analytics rules |
-| User behavioral baseline | CrowdStrike Falcon Identity, Darktrace, Splunk UBA |
-| Alert output | SIEM alert queue / ticketing integration (ServiceNow, Jira) |
-| Log ingest/normalization | Logstash, Cribl, Splunk Heavy Forwarder |
-
----
-
-## 📚 What I Learned
-
-- **Baselining is harder than rules.** Static thresholds produce noisy alerts. Building a per-user behavioral model dramatically reduces false positives — and this is exactly what UEBA platforms do.
-- **Log normalization is 60% of the work.** Getting auth logs, file events, and network events into a common schema before correlation is where most real SIEM projects spend their time.
-- **Context is everything in insider threat.** A 2 AM login from a sysadmin on-call is normal; the same login from a departing employee is a red flag. Enrichment (HR data, role context) is what separates a good UEBA from a bad one.
+- By default the agent posts over plain HTTP with one shared key in a header (there's a `USE_HTTPS` switch, off by default). That's fine on an isolated lab network; anything real would need TLS on and a key per agent.
+- Scoring is hand-tuned rules, not a learned baseline per user.

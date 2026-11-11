@@ -1,8 +1,6 @@
-# 🔎 Hunt: Living-off-the-Land Binaries (LOLBins)
+# Hunt: Living-off-the-Land Binaries (LOLBins)
 
 **ATT&CK:** T1218 (System Binary Proxy Execution) · **Data:** Sysmon Event ID 1 (Process Creation)
-
----
 
 ## 1. Hypothesis
 > An adversary with a foothold will prefer signed, built-in Windows binaries (`certutil`, `mshta`, `regsvr32`, `rundll32`, `bitsadmin`) to download or execute payloads, because they blend in with normal activity and may be allowlisted. If this is happening in my environment, I'll see these binaries spawning with network-facing or script-execution arguments, often from unusual parent processes.
@@ -13,7 +11,7 @@
 
 ## 3. The Hunt
 
-I started broad — every execution of the usual LOLBins — then pivoted on the suspicious arguments:
+Start broad, with every execution of the usual LOLBins, then pivot on the suspicious arguments:
 
 ```kql
 // See queries/lolbin_execution.kql for the full version
@@ -24,17 +22,17 @@ DeviceProcessEvents
 ```
 
 ### Pivot
-For each hit, I examined:
+For each hit, check:
 - **Parent process** — was `certutil` spawned by Office, a browser, or a script? (Office → `certutil` is highly suspicious.)
 - **Command line** — download URL? Decoding a base64 blob?
 - **Subsequent network connections** (Sysmon Event ID 3) from the same process.
 
-## 4. Findings
-The Atomic test `T1218.010 (regsvr32)` and a `certutil -urlcache -f http://...` download both surfaced clearly. Normal admin activity did **not** match the argument filters — meaning the behavioral filter (binary + suspicious args + unusual parent) was specific enough to be low-noise.
+## 4. What to expect
+The Atomic test `T1218.010 (regsvr32)` and a `certutil -urlcache -f http://...` download should both match. Normal admin activity shouldn't match the argument filters, because the filter needs all three: a known LOLBin, suspicious arguments and an unusual parent process.
 
-## 5. Outcome
-- ✅ Promoted the query into a **scheduled detection** (added to [SIEM Detection Rules](../02-siem-detection-rules/) backlog as a Sigma rule).
-- 📌 Documented that `rundll32` is too noisy to alert on by command line alone — it needs parent-process context to avoid false positives.
+## 5. If it works
+- Turn the query into a scheduled detection (a Sigma rule in [detection rules](../02-siem-detection-rules/)).
+- Don't alert on `rundll32` by command line alone: it's too common. It needs the parent process as context.
 
 ## 6. Reflection
-The biggest lesson: **hunting on behavior beats hunting on indicators.** I never needed a hash or an IP — the *combination* of a known LOLBin + suspicious arguments + abnormal parent is what made the activity stand out, and that's much harder for an adversary to change.
+The main idea: **hunting on behavior beats hunting on indicators.** No hash or IP is needed: the *combination* of a known LOLBin + suspicious arguments + abnormal parent is what made the activity stand out, and that's much harder for an adversary to change.

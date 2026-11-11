@@ -1,24 +1,16 @@
-# 📡 Wireless Attack Lab — 802.11 Security Research
+# Wireless Attack Lab — 802.11 Security Research
 
 > Authorized CTF/lab project covering passive wireless reconnaissance, client identification, and deauthentication attack execution — with a focus on how defenders detect these techniques.
 
-![Tools](https://img.shields.io/badge/tools-Kismet%20%2B%20airodump--ng%20%2B%20Python-1f6feb?style=flat-square)
-![Type](https://img.shields.io/badge/type-Authorized%20CTF%20%2F%20Lab-2ea043?style=flat-square)
-![Framework](https://img.shields.io/badge/mapped-MITRE%20ATT%26CK-c5283d?style=flat-square)
+> **Disclaimer:** All work documented here was performed in an authorized CTF environment targeting a dedicated test network. Deauthentication attacks on networks you do not own or have explicit written permission to test are illegal under the Computer Fraud and Abuse Act and equivalent laws. This project is documented for educational purposes only.
 
-> ⚠️ **Disclaimer:** All work documented here was performed in an authorized CTF environment targeting a dedicated test network. Deauthentication attacks on networks you do not own or have explicit written permission to test are illegal under the Computer Fraud and Abuse Act and equivalent laws. This project is documented for educational purposes only.
-
----
-
-## 🎯 Overview
+## Overview
 
 802.11 wireless security is a critical topic for SOC analysts — wireless attacks are quiet, hard to attribute, and can bypass perimeter defenses entirely. This lab covers the attacker's methodology end-to-end (passive recon → target identification → frame injection → result analysis) while building the defensive intuition to detect these patterns.
 
 The CTF scenario: identify target AP BSSID and connected client, force client reconnection via deauthentication flood, capture the WPA handshake, and analyze the resulting traffic.
 
----
-
-## 🧰 Skills & Technologies
+## Skills & Technologies
 
 - Kismet — passive 802.11 scanning and monitoring mode capture
 - airodump-ng (aircrack-ng suite) — targeted packet capture, client enumeration
@@ -27,9 +19,7 @@ The CTF scenario: identify target AP BSSID and connected client, force client re
 - Wireshark — packet analysis and handshake verification
 - 802.11 protocol: frame types (management/control/data), BSSID/SSID/ESSID, beacon frames, authentication/deauth frames
 
----
-
-## ⚙️ Methodology
+## Methodology
 
 ```
 PHASE 1: Passive Reconnaissance
@@ -73,9 +63,7 @@ sudo airodump-ng -c <CHANNEL> --bssid <TARGET_BSSID> -w capture wlan0mon
 sudo aireplay-ng -0 10 -a <AP_BSSID> -c <CLIENT_MAC> wlan0mon
 ```
 
----
-
-## 🗺️ MITRE ATT&CK Mapping
+## MITRE ATT&CK Mapping
 
 | Technique | ID | Phase |
 |-----------|----|-|
@@ -83,9 +71,7 @@ sudo aireplay-ng -0 10 -a <AP_BSSID> -c <CLIENT_MAC> wlan0mon
 | Network Denial of Service | T1498 | Deauth flood forcing client disconnect |
 | Adversary-in-the-Middle | T1557 | Positioning during reconnect (extended scenarios) |
 
----
-
-## 🛡️ Detection & Defensive Relevance
+## Detection & Defensive Relevance
 
 This is the core reason to document the attack: understanding what it looks like to a defender.
 
@@ -127,9 +113,7 @@ level: high
 - **Disable WPA2-only TKIP** — use WPA3 or WPA2-AES where possible.
 - **Monitor AP association logs** for clients repeatedly cycling disconnect/reconnect.
 
----
-
-## 📁 Contents
+## Contents
 
 ```
 scripts/
@@ -138,9 +122,7 @@ scripts/
 └── handshake_check.py  ← Validate captured handshake completeness in pcap
 ```
 
----
-
-## 📚 What I Learned
+## What I Learned
 
 - **The 802.11 management plane is unauthenticated by default.** Deauth attacks work because the AP and clients have no way to verify that management frames are genuine — MFP fixes this but requires hardware support on both sides.
 - **Passive recon leaves no trace.** Monitor mode captures are completely invisible to the target — defenders can't see you unless they have RF sensors looking for monitor-mode behavior.

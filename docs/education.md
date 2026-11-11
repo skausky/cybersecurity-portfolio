@@ -1,7 +1,7 @@
 # Education
 
 ## B.S. in Cybersecurity
-**Graduated:** 2026
+**Graduated:** May 2026
 
 ### Relevant Coursework
 - Network Security & Defense
@@ -13,11 +13,11 @@
 - Wireless Security & 802.11 Protocols
 - Malware Analysis & Reverse Engineering
 
-### Capstone / Notable Projects
+### Class projects
 
-- **AMSI & Windows Defender Bypass (C#)** — primary developer on a team capstone demonstrating AMSI bypass via memory patching and AV evasion techniques; documented with full defensive analysis. See [projects/06-amsi-defender-bypass](../projects/06-amsi-defender-bypass/).
-- **Insider Threat Detector** — Python-based SIEM prototype for detecting user behavior anomalies (off-hours access, data staging, privilege abuse). See [projects/07-insider-threat-detector](../projects/07-insider-threat-detector/).
-- **Network IDS Lab** — hands-on Suricata rule writing and Zeek log analysis for network intrusion detection. See [projects/10-network-ids-lab](../projects/10-network-ids-lab/).
+- **AMSI and Windows Defender bypass (C#):** team capstone; I wrote the AMSI memory-patching code, and we documented how Defender and logging can still catch it. See [the project](../projects/06-amsi-defender-bypass/).
+- **Insider Threat Detector:** a team class project; I wrote the Windows agent in C, the Flask server and the dashboard. See [the project](../projects/07-insider-threat-detector/).
+- **Network intrusion detection:** Suricata rules and Zeek log analysis in class. My notes are [here](../projects/10-network-ids-lab/).
 
 ## Continuing Education
 - CompTIA Security+ (SY0-701) — in progress

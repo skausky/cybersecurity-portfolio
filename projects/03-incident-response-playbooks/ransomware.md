@@ -1,10 +1,8 @@
-# 🧬 Playbook: Ransomware
+# Playbook: Ransomware
 
 **Aligned to:** NIST SP 800-61 · **Severity:** Critical
 
 > ⚠️ Speed and containment matter most. **Isolate, don't power off** where possible — powering off can destroy volatile evidence and, for some variants, corrupt recoverable data.
-
----
 
 ## Triggers / Detection Signals
 - Mass file modification/rename events (FIM / EDR) with unusual extensions
@@ -14,8 +12,6 @@
 
 ## Severity & Escalation
 **Critical — invoke the major incident process immediately.** Notify IR lead, management, and (per policy) legal and the cyber insurer.
-
----
 
 ## 1. Detection & Analysis
 - [ ] Confirm it's ransomware vs. a noisy false positive.

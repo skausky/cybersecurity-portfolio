@@ -1,8 +1,6 @@
-# 🎣 Playbook: Phishing Email
+# Playbook: Phishing Email
 
 **Aligned to:** NIST SP 800-61 · **Severity:** Medium → High (depends on click/credential entry)
-
----
 
 ## Triggers / Detection Signals
 - User-reported suspicious email (report button / abuse mailbox)
@@ -16,8 +14,6 @@
 | Email reported, not clicked | Low | No — document & block |
 | Link clicked, no creds entered | Medium | Notify IR lead |
 | Credentials entered / attachment opened | High | Escalate immediately, treat as account compromise |
-
----
 
 ## 1. Detection & Analysis
 - [ ] Pull the original email (headers + body) from the abuse mailbox — **do not** forward live links.
